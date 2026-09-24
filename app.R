@@ -9,7 +9,13 @@
 #   shared_meta    -- Metadata.xlsx read once per change instead of once per
 #                     app. 1.7 MB, and it used to be read nine times.
 #
-# global.R has already run: config, library path, packages, R/ and the modules.
+# Load the environment explicitly. Shiny does NOT source global.R for an app
+# that has an R/ directory: it turns on shiny.autoload.r instead and calls
+# loadSupport(globalrenv = NULL), which auto-sources R/*.R and skips global.R
+# entirely. The app then starts with no packages attached and dies on the first
+# dashboardPage(). Sourcing it here works either way, and under shiny-server too.
+source("global.R")
+
 
 # --- ui --------------------------------------------------------------------
 
@@ -27,7 +33,10 @@ sidebar_menu <- function() {
 
 body_tabs <- function() {
   built <- Filter(function(m) exists(m$ui, mode = "function"), MODULES)
-  tabs <- lapply(built, function(m) tabItem(tabName = m$id, get(m$ui)(m$id)))
+  # unname: MODULES is a named list, lapply keeps the names, and do.call passes
+  # a named argument to tabItems as an HTML *attribute* -- the whole tab gets
+  # escaped into the <div> tag instead of rendered. It still returns 200.
+  tabs <- unname(lapply(built, function(m) tabItem(tabName = m$id, get(m$ui)(m$id))))
   missing <- setdiff(names(MODULES), names(built))
   tabs <- c(tabs, lapply(missing, function(id) tabItem(
     tabName = id,
