@@ -41,6 +41,10 @@ step "namespaces" sh -c '
     cat("every built module is namespaced\n")
   '"'"''
 
+step "dplyr masking" sh -c '
+  Rscript tools/lint_masking.R app.R R/*.R R/modules/*.R 2>/dev/null &&
+  echo "no verb compares a column with itself"'
+
 step "the linter can still fail" sh -c '
   if Rscript tools/lint_ns.R --single-dataset legacy/export-matrix/app.R >/dev/null 2>&1 \
      || Rscript tools/lint_ns.R --single-dataset export-matrix/app.R >/dev/null 2>&1; then
