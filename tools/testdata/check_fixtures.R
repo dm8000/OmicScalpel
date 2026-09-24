@@ -1,0 +1,66 @@
+#!/usr/bin/env Rscript
+# Prove data-sample/ carries no real identifier. Run after make-fixtures.R and
+# before committing a regenerated fixture.
+#
+# The failure this guards against is silent: a fixture that still holds a real
+# sample id or study name looks fine and gets committed to a repository.
+
+suppressMessages(library(readxl))
+args <- commandArgs(FALSE)
+here <- dirname(sub("^--file=", "", grep("^--file=", args, value = TRUE)[1]))
+source(file.path(here, "..", "..", "R", "config.R"))
+
+root <- os_root()
+fix  <- file.path(root, "data-sample")
+fail <- function(...) { cat("FAIL: ", ..., "\n", sep = ""); quit(status = 1) }
+
+real_meta <- as.data.frame(read_excel(file.path(root, "Metadata.xlsx"), .name_repair = "minimal"))
+fx_meta   <- as.data.frame(read_excel(file.path(fix,  "Metadata.xlsx"), .name_repair = "minimal"))
+fx_summ   <- as.data.frame(read_excel(file.path(fix,  "Datasets_summary.xlsx"), .name_repair = "minimal"))
+
+# every cell of the fixtures, plus every expression file, as one character pile
+pile <- c(unlist(lapply(fx_meta, as.character)),
+          unlist(lapply(fx_summ, as.character)),
+          names(fx_meta), names(fx_summ))
+# Only the header (sample names) and the Symbol column. The numeric matrix is
+# excluded on purpose: an expression count of 2371 is not a leaked TsengID of
+# 2371, and comparing it as one makes this check cry wolf.
+for (f in list.files(fix, pattern = "\\.txt$", recursive = TRUE, full.names = TRUE)) {
+  txt <- read.delim(f, check.names = FALSE, colClasses = "character")
+  pile <- c(pile, names(txt), txt[[1]])
+}
+pile <- unique(pile[!is.na(pile)])
+
+leak <- intersect(pile, unique(na.omit(real_meta$dataset)))
+if (length(leak)) fail("real dataset name in fixture: ", paste(leak, collapse = ", "))
+
+leak <- intersect(pile, unique(na.omit(real_meta$SampleID)))
+if (length(leak)) fail(length(leak), " real SampleID(s) in fixture, e.g. ", leak[1])
+
+leak <- intersect(pile, unique(na.omit(as.character(real_meta$TsengID))))
+if (length(leak)) fail(length(leak), " real TsengID(s) in fixture, e.g. ", leak[1])
+
+for (col in c("Author", "publication")) {
+  if (col %in% names(real_meta)) {
+    leak <- intersect(pile, unique(na.omit(as.character(real_meta[[col]]))))
+    if (length(leak)) fail("real ", col, " value in fixture: ", leak[1])
+  }
+}
+
+# shape the apps depend on
+if (ncol(fx_meta) != ncol(real_meta)) fail("fixture has ", ncol(fx_meta), " metadata columns, real file has ", ncol(real_meta))
+if (length(unique(fx_meta$dataset)) != 2) fail("fixture must hold exactly 2 datasets")
+if (length(unique(fx_meta$`Data.type`)) < 2) fail("the 2 fixture datasets must differ in Data.type")
+if (anyDuplicated(fx_meta$SampleID)) fail("duplicate SampleID in fixture")
+
+# the two datasets must expose different unit sets, or a helper that ignores
+# its argument would pass unnoticed
+u <- lapply(unique(fx_meta$dataset), function(d)
+  sort(sub(paste0("^", d, "_(.*)\\.txt$"), "\\1", list.files(file.path(fix, d), pattern = "\\.txt$"))))
+if (length(u) != 2 || identical(u[[1]], u[[2]])) fail("both fixture datasets expose the same units: ", paste(unlist(u), collapse = ", "))
+
+cat("data-sample OK: ", nrow(fx_meta), " samples, ",
+    length(unique(fx_meta$dataset)), " datasets (",
+    paste(unique(fx_meta$dataset), collapse = ", "), "), types ",
+    paste(unique(fx_meta$`Data.type`), collapse = "/"), ", units ",
+    paste(sapply(u, paste, collapse = "+"), collapse = " vs "), "\n", sep = "")
