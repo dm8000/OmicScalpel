@@ -1,0 +1,24 @@
+# OmicScalpel -- filesystem paths. Single source of truth.
+#
+# Copy this file to config/config.txt and edit it there. config.txt is not
+# versioned, so each machine (HPC, laptop, test server) keeps its own.
+# If config.txt is absent, these example values are used.
+#
+# Format: one "key = value" per line. Blank lines and # comments ignored.
+# A relative value resolves against the project root -- that is how a local
+# checkout points hubdata at data-sample/ and runs without the HPC.
+
+# R library holding the app's packages. Also written into .Renviron by
+# tools/sync-renviron.R, because shiny-server must find shiny before it ever
+# reaches global.R.
+lib     = /n/shiny/OmicScalpel/lib
+
+# Metadata.xlsx, Datasets_summary.xlsx and one folder per dataset holding the
+# expression matrices (<dataset>/<dataset>_<unit>.txt).
+hubdata = /n/shiny/OmicScalpel/hubdata
+
+# Timestamped copies written before every spreadsheet overwrite.
+backups = /n/shiny/OmicScalpel/backups
+
+# Download log.
+logs    = /n/shiny/OmicScalpel/logs

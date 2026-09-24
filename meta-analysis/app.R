@@ -1,6 +1,8 @@
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 library(shiny)
 library(shinydashboard)
 library(DT)
@@ -175,7 +177,7 @@ server <- function(input, output, session) {
   metadata <- reactive({
     tryCatch({
       cat("Loading metadata...\n")
-      df <- read_excel("/n/shiny/OmicScalpel/hubdata/Metadata.xlsx")
+      df <- read_excel(os_path("hubdata", "Metadata.xlsx"))
       # Convert "NA" strings to actual NA values
       df[df == "NA"] <- NA
       cat("Metadata loaded successfully. Rows:", nrow(df), "Cols:", ncol(df), "\n")
@@ -290,7 +292,7 @@ server <- function(input, output, session) {
   
   # Function to find and load data
   load_data <- function(dataset, data_preference) {
-    base_path <- "/n/shiny/OmicScalpel/hubdata/"
+    base_path <- os_path("hubdata")
     dataset_path <- file.path(base_path, dataset)
     
     if (!dir.exists(dataset_path)) {

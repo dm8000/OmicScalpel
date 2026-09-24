@@ -1,6 +1,8 @@
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 library(shiny)
 library(readxl)
 library(dplyr)
@@ -9,12 +11,12 @@ library(tidyr)
 
 # Função para carregar os metadados
 load_metadata <- function() {
-  read_excel("/n/shiny/OmicScalpel/hubdata/Metadata.xlsx")
+  read_excel(os_path("hubdata", "Metadata.xlsx"))
 }
 
 # Função para carregar dados de expressão a partir do dataset e da unidade escolhida
 load_expression <- function(dataset, file_unit) {
-  dataset_dir <- file.path("/n/shiny/OmicScalpel/hubdata", dataset)
+  dataset_dir <- file.path(os_path("hubdata"), dataset)
   file_path <- file.path(dataset_dir, paste0(dataset, "_", file_unit, ".txt"))
   if (!file.exists(file_path)) {
     files <- list.files(dataset_dir, pattern = paste0("^", dataset, "_.*\\.txt$"), full.names = TRUE)
@@ -80,10 +82,10 @@ server <- function(input, output, session) {
   # Atualiza unidades e escolhas de genes/metadados ao escolher dataset
   observeEvent(input$dataset, {
     meta <- load_metadata()
-    expr <- load_expression(input$dataset, list.files(file.path("/n/shiny/OmicScalpel/hubdata", input$dataset), pattern = paste0("^", input$dataset, ".*\\.txt$"))[1])
+    expr <- load_expression(input$dataset, list.files(file.path(os_path("hubdata"), input$dataset), pattern = paste0("^", input$dataset, ".*\\.txt$"))[1])
     
     # units
-    dir <- file.path("/n/shiny/OmicScalpel/hubdata", input$dataset)
+    dir <- file.path(os_path("hubdata"), input$dataset)
     files <- list.files(dir, pattern = paste0("^", input$dataset, "_.*\\.txt$"))
     units <- sub(paste0("^", input$dataset, "_(.*)\\.txt$"), "\\1", files)
     updateSelectInput(session, "file_unit", choices = units)
@@ -196,7 +198,7 @@ server <- function(input, output, session) {
     filename = function() paste0("matriz_", input$dataset, "_", input$file_unit, ".txt"),
     content = function(file) {
       # Registrar o download em log
-      log_dir <- "/n/shiny/OmicScalpel/logs"
+      log_dir <- os_path("logs")
       if (!dir.exists(log_dir)) {
         dir.create(log_dir, recursive = TRUE)
       }

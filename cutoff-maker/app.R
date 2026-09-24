@@ -1,7 +1,9 @@
 # cutoff_editor_app.R
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 library(shiny)
 library(shinydashboard)
 library(rhandsontable)
@@ -13,7 +15,7 @@ library(plotly)
 library(shinyWidgets)
 
 # Caminho do arquivo de dados
-file_path <- "/n/shiny/OmicScalpel/hubdata/Metadata.xlsx"
+file_path <- os_path("hubdata", "Metadata.xlsx")
 
 # Função para carregar os dados
 load_data <- function() {
@@ -26,7 +28,7 @@ load_data <- function() {
 save_data <- function(new_data) {
   current_data <- tryCatch(read_excel(file_path), error = function(e) NULL)
   
-  backup_folder <- "/n/shiny/OmicScalpel/backups/"
+  backup_folder <- os_path("backups")
   if (!dir.exists(backup_folder)) dir.create(backup_folder, recursive = TRUE)
   
   timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")

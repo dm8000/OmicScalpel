@@ -7,7 +7,7 @@
 config/config.txt
 
 # Generated from config/config.txt by tools/sync-renviron.R — never edit by hand.
-/.Renviron
+.Renviron
 
 # R session leftovers
 .Rhistory
@@ -18,3 +18,6 @@ config/config.txt
 # App output and agent scratch
 **/outputs/
 .subagente/
+
+# Local run artifacts (backups/logs when config.txt points here)
+.local/

@@ -1,8 +1,10 @@
 options(shiny.maxRequestSize = 1000*1024^2)
 
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 options(shiny.maxRequestSize = 1000*1024^2)
 library(shiny)
 library(datamods)
@@ -11,8 +13,8 @@ library(writexl)
 library(DT)
 library(magrittr)
 
-file_path <- "/n/shiny/OmicScalpel/hubdata/Metadata.xlsx"
-datasets_summary_path <- "/n/shiny/OmicScalpel/hubdata/Datasets_summary.xlsx"
+file_path <- os_path("hubdata", "Metadata.xlsx")
+datasets_summary_path <- os_path("hubdata", "Datasets_summary.xlsx")
 
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
@@ -73,7 +75,7 @@ load_datasets_summary <- function() {
 }
 
 save_data <- function(original_data, edited_data) {
-  backup_folder <- "/n/shiny/OmicScalpel/backups"
+  backup_folder <- os_path("backups")
   if (!dir.exists(backup_folder)) {
     dir.create(backup_folder, recursive = TRUE)
   }
@@ -84,7 +86,7 @@ save_data <- function(original_data, edited_data) {
 }
 
 save_datasets_summary <- function(original_data, edited_data) {
-  backup_folder <- "/n/shiny/OmicScalpel/backups"
+  backup_folder <- os_path("backups")
   if (!dir.exists(backup_folder)) {
     dir.create(backup_folder, recursive = TRUE)
   }
@@ -785,7 +787,7 @@ server <- function(input, output, session) {
   observeEvent(input$confirmDataUpload, {
     req(rv$data_upload_mode, rv$filename_base, rv$uploaded_data_files, rv$dataset_info)
     
-    data_folder <- file.path("/n/shiny/OmicScalpel/hubdata", rv$filename_base)
+    data_folder <- file.path(os_path("hubdata"), rv$filename_base)
     if (dir.exists(data_folder)) {
       showNotification(paste("Error: Folder", rv$filename_base, "already exists in Dataset_curated/data"), 
                        type = "error", duration = 10)

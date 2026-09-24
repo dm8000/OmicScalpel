@@ -1,6 +1,8 @@
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 library(shinydashboard)
 library(readxl)
 library(datamods)
@@ -73,10 +75,10 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) {
   # File paths
-  data_file     <- "/n/shiny/OmicScalpel/hubdata/Datasets_summary.xlsx"
-  metadata_file <- "/n/shiny/OmicScalpel/hubdata/Metadata.xlsx"
-  data_folder   <- "/n/shiny/OmicScalpel/hubdata/"
-  backup_dir    <- "/n/shiny/OmicScalpel/backups/"
+  data_file     <- os_path("hubdata", "Datasets_summary.xlsx")
+  metadata_file <- os_path("hubdata", "Metadata.xlsx")
+  data_folder   <- os_path("hubdata")
+  backup_dir    <- os_path("backups")
   
   if (!dir.exists(backup_dir)) {
     dir.create(backup_dir, recursive = TRUE, showWarnings = FALSE)

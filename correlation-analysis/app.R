@@ -1,6 +1,8 @@
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 library(shiny)
 library(shinydashboard)
 library(sortable)
@@ -15,7 +17,7 @@ library(colourpicker)
 library(jsonlite)
 library(svglite)    # for SVG export
 
-metadata_path <- "/n/shiny/OmicScalpel/hubdata/Metadata.xlsx"
+metadata_path <- os_path("hubdata", "Metadata.xlsx")
 metadata <- read_excel(metadata_path)
 
 ui <- dashboardPage(
@@ -263,7 +265,7 @@ server <- function(input, output, session) {
     files <- c("_TMM.txt","_CPM.txt","_TPM.txt","_FPKM.txt","_count.txt","_unknown_unit.txt")
     tmm_path <- NULL; unit <- ""
     for (suf in files) {
-      p <- file.path("/n/shiny/OmicScalpel/hubdata", input$dataset, paste0(input$dataset, suf))
+      p <- file.path(os_path("hubdata"), input$dataset, paste0(input$dataset, suf))
       if (file.exists(p)) {
         tmm_path <- p
         unit <- if (suf=="_unknown_unit.txt") "unknown" else toupper(sub("^_|\\.txt$","", suf))
@@ -360,7 +362,7 @@ server <- function(input, output, session) {
     files <- c("_TMM.txt","_CPM.txt","_TPM.txt","_FPKM.txt","_count.txt","_unknown_unit.txt")
     tmm_path <- NULL
     for (s in files) {
-      p <- file.path("/n/shiny/OmicScalpel/hubdata", input$dataset, paste0(input$dataset,s))
+      p <- file.path(os_path("hubdata"), input$dataset, paste0(input$dataset,s))
       if (file.exists(p)) { tmm_path <- p; break }
     }
     expr <- read.delim(tmm_path)

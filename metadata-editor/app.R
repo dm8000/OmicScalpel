@@ -1,13 +1,15 @@
-Sys.setenv(R_LIBS = "/n/shiny/OmicScalpel/lib")
-Sys.setenv(R_LIBS_USER = "/n/shiny/OmicScalpel/lib")
-.libPaths("/n/shiny/OmicScalpel/lib")
+# Paths come from config/config.txt -- see R/config.R
+source("../R/config.R")
+Sys.setenv(R_LIBS = os_path("lib"))
+Sys.setenv(R_LIBS_USER = os_path("lib"))
+.libPaths(os_path("lib"))
 library(shiny)
 library(datamods)
 library(readxl)
 library(writexl)
 library(DT)
 
-file_path <- "/n/shiny/OmicScalpel/hubdata/Metadata.xlsx"
+file_path <- os_path("hubdata", "Metadata.xlsx")
 
 load_data <- function() {
   tryCatch({
@@ -25,7 +27,7 @@ load_data <- function() {
 }
 
 save_data <- function(original_data, edited_data) {
-  backup_folder <- "/n/shiny/OmicScalpel/hubdata/"
+  backup_folder <- os_path("hubdata")
   if (!dir.exists(backup_folder)) {
     dir.create(backup_folder, recursive = TRUE)
   }
