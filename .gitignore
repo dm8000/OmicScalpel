@@ -1,0 +1,20 @@
+# Live data: the hub spreadsheets are the app's mutable database, edited through the
+# interface itself. Versioning them turns every edit into a multi-MB binary diff.
+*.xlsx
+!data-sample/**/*.xlsx
+
+# Machine-local configuration. Copy config/config.txt.example and edit.
+config/config.txt
+
+# Generated from config/config.txt by tools/sync-renviron.R — never edit by hand.
+/.Renviron
+
+# R session leftovers
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# App output and agent scratch
+**/outputs/
+.subagente/
