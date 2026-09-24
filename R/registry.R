@@ -13,39 +13,48 @@
 MODULES <- list(
   list(id = "data_summary",         scope = "many", group = "Explore",
        title = "Dataset summary",   icon = "table",
-       ui = "dataSummaryUI",        server = "dataSummaryServer"),
+       ui = "dataSummaryUI",        server = "dataSummaryServer",
+       pkgs = c("datamods", "dplyr", "DT", "forcats", "ggplot2", "openxlsx", "plotly", "RColorBrewer")),
 
   list(id = "compare_genes",        scope = "one",  group = "Explore",
        title = "Compare genes",     icon = "chart-bar",
-       ui = "compareGenesUI",       server = "compareGenesServer"),
+       ui = "compareGenesUI",       server = "compareGenesServer",
+       pkgs = c("colourpicker", "dplyr", "ggbreak", "ggplot2", "ggpubr", "jsonlite", "patchwork", "purrr", "RColorBrewer", "rlang", "sortable", "svglite")),
 
   list(id = "compare_samples",      scope = "one",  group = "Explore",
        title = "Compare samples",   icon = "vials",
-       ui = "compareSamplesUI",     server = "compareSamplesServer"),
+       ui = "compareSamplesUI",     server = "compareSamplesServer",
+       pkgs = c("colourpicker", "dplyr", "ggbreak", "ggplot2", "ggpubr", "jsonlite", "patchwork", "purrr", "RColorBrewer", "rlang", "sortable", "svglite")),
 
   list(id = "correlation_analysis", scope = "one",  group = "Explore",
        title = "Correlation",       icon = "chart-line",
-       ui = "correlationUI",        server = "correlationServer"),
+       ui = "correlationUI",        server = "correlationServer",
+       pkgs = c("colourpicker", "dplyr", "ggplot2", "ggpubr", "jsonlite", "RColorBrewer", "rlang", "sortable", "svglite", "viridis")),
 
   list(id = "meta_analysis",        scope = "many", group = "Explore",
        title = "Meta-analysis",     icon = "tree",
-       ui = "metaAnalysisUI",       server = "metaAnalysisServer"),
+       ui = "metaAnalysisUI",       server = "metaAnalysisServer",
+       pkgs = c("cowplot", "dplyr", "DT", "ggplot2", "grid", "gridExtra", "meta")),
 
   list(id = "export_matrix",        scope = "one",  group = "Export",
        title = "Export matrix",     icon = "file-export",
-       ui = "exportMatrixUI",       server = "exportMatrixServer"),
+       ui = "exportMatrixUI",       server = "exportMatrixServer",
+       pkgs = c("dplyr", "DT", "tidyr")),
 
   list(id = "upload_dataset",       scope = "many", group = "Manage",
        title = "Upload dataset",    icon = "upload",
-       ui = "uploadDatasetUI",      server = "uploadDatasetServer"),
+       ui = "uploadDatasetUI",      server = "uploadDatasetServer",
+       pkgs = c("datamods", "DT", "magrittr")),
 
   list(id = "metadata_editor",      scope = "one",  group = "Manage",
        title = "Edit metadata",     icon = "pen-to-square",
-       ui = "metadataEditorUI",     server = "metadataEditorServer"),
+       ui = "metadataEditorUI",     server = "metadataEditorServer",
+       pkgs = c("datamods", "DT")),
 
   list(id = "cutoff_maker",         scope = "one",  group = "Manage",
        title = "Cutoffs",           icon = "sliders",
-       ui = "cutoffMakerUI",        server = "cutoffMakerServer")
+       ui = "cutoffMakerUI",        server = "cutoffMakerServer",
+       pkgs = c("dplyr", "ggplot2", "plotly", "rhandsontable", "shinyWidgets"))
 )
 names(MODULES) <- vapply(MODULES, function(m) m$id, character(1))
 
