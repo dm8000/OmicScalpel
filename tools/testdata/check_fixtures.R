@@ -53,6 +53,16 @@ if (length(unique(fx_meta$dataset)) != 2) fail("fixture must hold exactly 2 data
 if (length(unique(fx_meta$`Data.type`)) < 2) fail("the 2 fixture datasets must differ in Data.type")
 if (anyDuplicated(fx_meta$SampleID)) fail("duplicate SampleID in fixture")
 
+# The cutoff and correlation tabs need a continuous variable. A fixture without
+# one lets them pass every test by never having anything to do.
+numeric_cols <- names(fx_meta)[vapply(fx_meta, function(c)
+  sum(!is.na(suppressWarnings(as.numeric(as.character(c))))) >= nrow(fx_meta),
+  logical(1))]
+if (length(numeric_cols) < 2) {
+  fail("fixture has ", length(numeric_cols),
+       " fully numeric column(s); the cutoff and correlation tabs need at least 2")
+}
+
 # the two datasets must expose different unit sets, or a helper that ignores
 # its argument would pass unnoticed
 u <- lapply(unique(fx_meta$dataset), function(d)

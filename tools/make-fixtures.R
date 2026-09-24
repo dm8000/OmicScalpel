@@ -65,6 +65,18 @@ meta_out <- do.call(rbind, lapply(names(real), function(k) {
 }))
 rownames(meta_out) <- NULL
 
+# Give the fixture real numbers. The two datasets that happen to be closest to
+# the fixture size carried no numeric measurement at all, which left the cutoff
+# and correlation tabs with nothing to work on -- they could not be tested, or
+# even demonstrated, against data-sample. These are synthetic values in columns
+# that already exist, in plausible ranges.
+CONTINUOUS <- list(Age = c(20, 75), BMI = c(18, 45),
+                   Adipocyte.size = c(30, 150), Adipocytes.score = c(0, 1))
+for (col in intersect(names(CONTINUOUS), names(meta_out))) {
+  r <- CONTINUOUS[[col]]
+  meta_out[[col]] <- round(runif(nrow(meta_out), r[1], r[2]), 2)
+}
+
 summ_out <- do.call(rbind, lapply(names(real), function(k) {
   rows <- summ[which(summ$dataset == real[[k]]), , drop = FALSE]
   if (!nrow(rows)) rows <- summ[1, , drop = FALSE]       # keep the 28 columns
