@@ -134,11 +134,19 @@ log_download <- function(...) {
 # The announcement lives inside save_*() rather than in each module: a module
 # cannot forget to call what it does not have to call.
 
-.io_state <- new.env(parent = emptyenv())
-
+# The counter lives in options(), not in a file-level environment, because this
+# file gets sourced twice into two different environments: shiny autoloads R/*.R
+# into its shared env and global.R sources it again. With a file-level env there
+# would be two counters -- save_metadata() would bump one while the app watched
+# the other, and an edit would silently never propagate. options() is
+# process-wide, so every copy of this code shares one counter.
 .metadata_version_val <- function() {
-  if (is.null(.io_state$version)) .io_state$version <- shiny::reactiveVal(0L)
-  .io_state$version
+  v <- getOption("omicscalpel.metadata_version")
+  if (is.null(v)) {
+    v <- shiny::reactiveVal(0L)
+    options(omicscalpel.metadata_version = v)
+  }
+  v
 }
 
 # Depend on this inside a reactive that reads the metadata, and the read repeats

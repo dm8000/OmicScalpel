@@ -99,7 +99,7 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
         return()
       }
       subset_data <- rv$data[rv$data$dataset == rv$current_dataset, , drop = FALSE]
-      if (input$toggle_na) {
+      if (isTRUE(input$toggle_na)) {
         non_na_cols   <- colnames(subset_data)[colSums(subset_data == "NA" | is.na(subset_data)) < nrow(subset_data)]
         essential     <- c("SampleID", "dataset", "Data.type", "Author", "LABEID")
         required_cols <- union(non_na_cols, intersect(essential, colnames(subset_data)))

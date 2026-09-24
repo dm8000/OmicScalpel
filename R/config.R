@@ -6,7 +6,15 @@
 # Base R only, on purpose: this file is sourced *before* .libPaths() is pointed
 # at the deployment library, so at this moment nothing under lib/ is loadable.
 
-.os_cache <- new.env(parent = emptyenv())
+# In options(), not a file-level environment: this file is sourced more than
+# once (shiny autoloads R/*.R and global.R sources it again), and a per-copy
+# cache means read_config(reload = TRUE) resets one copy while another keeps
+# serving the old paths.
+.os_cache <- local({
+  e <- getOption("omicscalpel.cache")
+  if (is.null(e)) { e <- new.env(parent = emptyenv()); options(omicscalpel.cache = e) }
+  e
+})
 
 # Walk up from `start` until a directory holding config/config.txt.example is
 # found. Works both from the project root (unified app) and from a subdirectory
