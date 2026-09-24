@@ -102,6 +102,14 @@ save_metadata(NULL, edited2)
 chk(identical(load_metadata()$Tissue[2], "NA"), "NA is written back as the literal \"NA\"",
     load_metadata()$Tissue[2])
 
+# --- change notification ----------------------------------------------------
+# A writer that does not bump the version leaves every other tab showing a file
+# that is no longer on disk.
+v0 <- metadata_version()
+save_datasets_summary(load_datasets_summary(), load_datasets_summary())
+chk(metadata_version() == v0 + 1L, "save bumps the metadata version",
+    v0, " -> ", metadata_version())
+
 # --- log --------------------------------------------------------------------
 log_download(Dataset = "DEMO_RNAseq", Unit = "TPM", Genes = c("A", "B"))
 lg <- file.path(tmp, "logs", "downloads.log")

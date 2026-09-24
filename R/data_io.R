@@ -62,11 +62,15 @@ save_xlsx_with_backup <- function(original, edited, target, label) {
 }
 
 save_metadata <- function(original, edited) {
-  save_xlsx_with_backup(original, edited, metadata_path(), "Metadata")
+  backup <- save_xlsx_with_backup(original, edited, metadata_path(), "Metadata")
+  invalidate_metadata()
+  invisible(backup)
 }
 
 save_datasets_summary <- function(original, edited) {
-  save_xlsx_with_backup(original, edited, summary_path(), "Datasets_summary")
+  backup <- save_xlsx_with_backup(original, edited, summary_path(), "Datasets_summary")
+  invalidate_metadata()
+  invisible(backup)
 }
 
 # --- expression matrices ---------------------------------------------------
@@ -120,4 +124,34 @@ log_download <- function(...) {
                         sep = "", collapse = " | "), "\n")
   cat(entry, file = file.path(dir, "downloads.log"), append = TRUE)
   invisible(entry)
+}
+
+# --- change notification ---------------------------------------------------
+#
+# Nine separate apps could each keep a stale copy of Metadata.xlsx and nobody
+# noticed, because nobody could see two of them at once. In one app with nine
+# tabs an edit that does not propagate is obvious, so the writers announce it.
+# The announcement lives inside save_*() rather than in each module: a module
+# cannot forget to call what it does not have to call.
+
+.io_state <- new.env(parent = emptyenv())
+
+.metadata_version_val <- function() {
+  if (is.null(.io_state$version)) .io_state$version <- shiny::reactiveVal(0L)
+  .io_state$version
+}
+
+# Depend on this inside a reactive that reads the metadata, and the read repeats
+# whenever something writes it. Outside a reactive context -- a script, a test,
+# the console -- reading a reactiveVal is an error, so there it just reports the
+# number instead of blowing up.
+metadata_version <- function() {
+  v <- .metadata_version_val()
+  tryCatch(v(), error = function(e) shiny::isolate(v()))
+}
+
+invalidate_metadata <- function() {
+  v <- .metadata_version_val()
+  v(shiny::isolate(v()) + 1L)
+  invisible(NULL)
 }
