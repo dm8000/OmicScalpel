@@ -14,6 +14,23 @@
                    read it; adding a module means adding a row.
     R/modules/     one file per tab.
 
+## One trap, written down because it cost three attempts
+
+**Shiny does not source `global.R` for this app.** Because the project has an
+`R/` directory, shiny turns on `shiny.autoload.r`, calls
+`loadSupport(globalrenv = NULL)`, auto-sources `R/*.R` (not `R/modules/`, which
+is a subdirectory) and skips `global.R` entirely. The app then starts with no
+packages attached and dies on the first `dashboardPage()`.
+
+`app.R` therefore sources `global.R` itself, unconditionally. Do not guard that
+with `exists("MODULES")`: autoload has already defined it, so the guard is
+always true and the source never runs.
+
+The smoke test does not catch this, because it sources `global.R` itself. Only
+starting the app does. The same applies to `tabItems()`: pass it an *unnamed*
+list, or htmltools turns each tab into an escaped HTML attribute and the page
+serves 200 with nine empty tabs.
+
 ## Shared state
 
 Two things are shared, and they are the reason the nine apps were merged.
