@@ -14,8 +14,8 @@ follows it.
 | tab | what it does |
 |---|---|
 | Dataset summary | One row per dataset: sample size, tissue, species, which normalized files exist. Sex and age distributions for the datasets you select. The summary sheet is editable, with the derived columns locked. |
-| Compare genes | Boxplots of selected genes across the conditions of one dataset. Groups can be reordered and recoloured; labels, fonts and sizes are all adjustable, and Wilcoxon comparisons can be drawn on the plot. |
-| Compare samples | The same boxplots resolved per sample rather than per condition, with groups that can be hidden as well as reordered. |
+| Compare genes | Boxplots with the **genes on the x axis and one panel per condition** — for asking how several genes compare within each group. Groups can be reordered and recoloured; labels, fonts and sizes are adjustable, and Wilcoxon comparisons can be drawn on the plot. |
+| Compare samples | The transpose: **conditions on the x axis, one panel per gene** — for asking how one gene differs between groups. Same plot controls, plus groups that can be hidden as well as reordered. |
 | Correlation | Gene expression against a continuous variable of the dataset, with the same plot controls. |
 | Meta-analysis | Forest plot of one biomolecule across several datasets at once, from two groups of samples you define by condition. |
 
