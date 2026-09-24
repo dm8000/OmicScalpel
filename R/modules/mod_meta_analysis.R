@@ -1,78 +1,78 @@
 metaAnalysisUI <- function(id) {
   ns <- NS(id)
-  tagList(
-    fluidRow(
-      column(width = 3,
-        box(title = "Input Parameters", status = "primary", solidHeader = TRUE, width = 12,
-          textInput(ns("biomolecule"), "Biomolecule Name:", placeholder = "e.g., LEP"),
-          selectInput(ns("condition"), "Select Condition:", choices = NULL),
-          radioButtons(ns("stat_test"), "Statistical Test:",
-                       choices = list("T-test" = "ttest", "Wilcoxon test" = "wilcoxon"),
-                       selected = "ttest"),
-          conditionalPanel(condition = "output.show_categorical_groups", ns = ns,
-            h4("Group Assignment"),
-            selectInput(ns("group1_categories"), "Group 1 (Reference):", choices = NULL, multiple = TRUE),
-            selectInput(ns("group2_categories"), "Group 2 (Comparison):", choices = NULL, multiple = TRUE)
-          ),
-          conditionalPanel(condition = "output.show_numeric_groups", ns = ns,
-            h4("Numeric Variable Analysis"),
-            selectInput(ns("numeric_split"), "Split method:",
-                        choices = list(
-                          "Median split (50th percentile)" = "median",
-                          "Tertile split (top 33% vs bottom 33%)" = "tertile",
-                          "Quartile split (top 25% vs bottom 25%)" = "quartile",
-                          "Custom percentile" = "percentile",
-                          "Custom threshold" = "threshold"
-                        )
-            ),
-            conditionalPanel(condition = "input.numeric_split == 'percentile'", ns = ns,
-              numericInput(ns("custom_percentile"), "Percentile cutoff (%):", value = 20, min = 5, max = 45, step = 5),
-              p("Top X% vs Bottom X%", style = "font-size: 12px; color: gray;")
-            ),
-            conditionalPanel(condition = "input.numeric_split == 'threshold'", ns = ns,
-              numericInput(ns("custom_threshold"), "Threshold value:", value = 0),
-              radioButtons(ns("threshold_direction"), "Groups:",
-                           choices = list(
-                             "Below threshold vs Above threshold" = "below_above",
-                             "Above threshold vs Below threshold" = "above_below"
-                           )
-                      )
-            )
-          ),
-          h4("Filter Conditions (Optional)"),
-          selectInput(ns("filter_conditions"), "Select filter conditions:", choices = NULL, multiple = TRUE),
-          uiOutput(ns("filter_ui")),
-          h4("Data Preferences"),
-          selectInput(ns("data_preference"), "Data type preference:",
+  os_layout(
+    left = tagList(
+      os_panel(title = "Input Parameters",
+        textInput(ns("biomolecule"), "Biomolecule Name:", placeholder = "e.g., LEP"),
+        selectInput(ns("condition"), "Select Condition:", choices = NULL),
+        radioButtons(ns("stat_test"), "Statistical Test:",
+                     choices = list("T-test" = "ttest", "Wilcoxon test" = "wilcoxon"),
+                     selected = "ttest"),
+        conditionalPanel(condition = "output.show_categorical_groups", ns = ns,
+          h4("Group Assignment"),
+          selectInput(ns("group1_categories"), "Group 1 (Reference):", choices = NULL, multiple = TRUE),
+          selectInput(ns("group2_categories"), "Group 2 (Comparison):", choices = NULL, multiple = TRUE)
+        ),
+        conditionalPanel(condition = "output.show_numeric_groups", ns = ns,
+          h4("Numeric Variable Analysis"),
+          selectInput(ns("numeric_split"), "Split method:",
                       choices = list(
-                        "TMM" = "TMM", "CPM" = "CPM", "TPM" = "TPM",
-                        "FPKM" = "FPKM", "count" = "count", "unknown_unit" = "unknown_unit"
-                      ),
-                      selected = "TMM"
+                        "Median split (50th percentile)" = "median",
+                        "Tertile split (top 33% vs bottom 33%)" = "tertile",
+                        "Quartile split (top 25% vs bottom 25%)" = "quartile",
+                        "Custom percentile" = "percentile",
+                        "Custom threshold" = "threshold"
+                      )
           ),
-          br(),
-          actionButton(ns("generate_plot"), "Generate Forest Plot", class = "btn-primary btn-lg")
-        )
-      ),
-      column(width = 9,
-        box(title = "Forest Plot", status = "primary", solidHeader = TRUE, width = 12,
-          div(style = "position: relative;",
-              plotOutput(ns("forest_plot"), height = "700px"),
-              absolutePanel(top = 10, right = 10, draggable = FALSE,
-                            downloadButton(ns("dl_forest_png"), label = "PNG"),
-                            br(),
-                            downloadButton(ns("dl_forest_svg"), label = "SVG"),
-                            br(),
-                            downloadButton(ns("dl_forest_pdf"), label = "PDF")
-              )
+          conditionalPanel(condition = "input.numeric_split == 'percentile'", ns = ns,
+            numericInput(ns("custom_percentile"), "Percentile cutoff (%):", value = 20, min = 5, max = 45, step = 5),
+            p("Top X% vs Bottom X%", style = "font-size: 12px; color: gray;")
+          ),
+          conditionalPanel(condition = "input.numeric_split == 'threshold'", ns = ns,
+            numericInput(ns("custom_threshold"), "Threshold value:", value = 0),
+            radioButtons(ns("threshold_direction"), "Groups:",
+                         choices = list(
+                           "Below threshold vs Above threshold" = "below_above",
+                           "Above threshold vs Below threshold" = "above_below"
+                         )
+                    )
           )
         ),
-        box(title = "Analysis Summary", status = "primary", solidHeader = TRUE, width = 12,
-          verbatimTextOutput(ns("analysis_summary"))
+        h4("Filter Conditions (Optional)"),
+        selectInput(ns("filter_conditions"), "Select filter conditions:", choices = NULL, multiple = TRUE),
+        uiOutput(ns("filter_ui")),
+        h4("Data Preferences"),
+        selectInput(ns("data_preference"), "Data type preference:",
+                    choices = list(
+                      "TMM" = "TMM", "CPM" = "CPM", "TPM" = "TPM",
+                      "FPKM" = "FPKM", "count" = "count", "unknown_unit" = "unknown_unit"
+                    ),
+                    selected = "TMM"
         ),
-        box(title = "Selected Metadata", status = "primary", solidHeader = TRUE, width = 12,
-          DT::dataTableOutput(ns("metadata_table"))
+        br(),
+        actionButton(ns("generate_plot"), "Generate Forest Plot", class = "btn-primary btn-lg")
+      )
+    ),
+    center = tagList(
+      os_panel(title = "Forest Plot",
+        div(style = "position: relative;",
+            plotOutput(ns("forest_plot"), height = "700px"),
+            absolutePanel(top = 10, right = 10, draggable = FALSE,
+                          downloadButton(ns("dl_forest_png"), label = "PNG"),
+                          br(),
+                          downloadButton(ns("dl_forest_svg"), label = "SVG"),
+                          br(),
+                          downloadButton(ns("dl_forest_pdf"), label = "PDF")
+            )
         )
+      )
+    ),
+    right = tagList(
+      os_panel(title = "Analysis Summary",
+        verbatimTextOutput(ns("analysis_summary"))
+      ),
+      os_panel(title = "Selected Metadata",
+        DT::dataTableOutput(ns("metadata_table"))
       )
     )
   )
