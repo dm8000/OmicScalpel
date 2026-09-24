@@ -43,7 +43,18 @@ if (length(MODULE_PKG_MISSING)) {
 source("R/ui_helpers.R")
 source("R/data_io.R")
 
+# A module that fails to source must not take the other eight with it. One
+# broken file used to make every later module in a conversion chain fail on
+# someone else's syntax error, which is a very confusing way to be told about
+# a stray parenthesis. Loudly skipped instead, and recorded so the checks can
+# report it rather than crash.
+MODULE_LOAD_FAILED <- list()
 for (m in MODULES) {
   f <- module_file(m)
-  if (file.exists(f)) source(f)
+  if (!file.exists(f)) next
+  e <- tryCatch({ source(f); NULL }, error = function(e) conditionMessage(e))
+  if (!is.null(e)) {
+    MODULE_LOAD_FAILED[[m$id]] <- e
+    message("OmicScalpel: ", m$id, " failed to load: ", e)
+  }
 }
