@@ -1,50 +1,40 @@
 dataSummaryUI <- function(id) {
   ns <- NS(id)
-  tagList(
-    tags$head(tags$style(HTML("
-      .dataTable { width: 100% !important; }
-      .dataTable td { padding: 6px !important; }
-      .box { padding-bottom: 20px; }
-    "))),
-    fluidRow(
-      column(
-        width = 3,
-        box(
-          width = NULL, status = "primary",
-          selectInput(ns("dataset_selector"), "Select Datasets:",
-            choices = NULL, multiple = TRUE, selectize = TRUE
-          )
-        ),
-        box(
-          width = NULL, status = "info",
-          title = "Sex Distribution",
-          plotlyOutput(ns("sex_pie"), height = "300px")
-        ),
-        box(
-          width = NULL, status = "info",
-          title = "Age Distribution",
-          plotlyOutput(ns("age_hist"), height = "300px")
+  os_layout(
+    left = tagList(
+      os_panel(title = "Selection",
+        selectInput(ns("dataset_selector"), "Select Datasets:",
+          choices = NULL, multiple = TRUE, selectize = TRUE
         )
-      ),
-      column(
-        width = 9,
-        box(
-          width = NULL, status = "primary",
-          title = "Dataset Summary",
-          tags$div(
-            style = "margin-bottom: 8px;",
-            tags$span(
-              style = "display:inline-block;width:12px;height:12px;background:#AEC6CF;margin-right:5px;border:1px solid #ccc;"
-            ),
-            "Locked (non-editable) columns"
+      )
+    ),
+    center = tagList(
+      tags$head(tags$style(HTML("
+        .dataTable { width: 100% !important; }
+        .dataTable td { padding: 6px !important; }
+      "))),
+      os_panel(title = "Dataset Summary",
+        tags$div(
+          style = "margin-bottom: 8px;",
+          tags$span(
+            style = "display:inline-block;width:12px;height:12px;background:#AEC6CF;margin-right:5px;border:1px solid #ccc;"
           ),
-          DTOutput(ns("summary_table")),
-          helpText("Select a row to make that dataset the active one."),
-          actionButton(ns("load_dataset"), "Load dataset",
-                       icon = icon("circle-check"), class = "btn-primary"),
-          br(),
-          actionButton(ns("save_button"), "Save Changes", icon = icon("save"), class = "btn-success")
-        )
+          "Locked (non-editable) columns"
+        ),
+        DTOutput(ns("summary_table")),
+        helpText("Select a row to make that dataset the active one."),
+        actionButton(ns("load_dataset"), "Load dataset",
+                     icon = icon("circle-check"), class = "btn-primary"),
+        br(),
+        actionButton(ns("save_button"), "Save Changes", icon = icon("save"), class = "btn-success")
+      )
+    ),
+    right = tagList(
+      os_panel(title = "Sex Distribution",
+        plotlyOutput(ns("sex_pie"), height = "300px")
+      ),
+      os_panel(title = "Age Distribution",
+        plotlyOutput(ns("age_hist"), height = "300px")
       )
     )
   )
