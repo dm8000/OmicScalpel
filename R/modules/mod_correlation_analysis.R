@@ -13,63 +13,69 @@ correlationUI <- function(id) {
         .hidden-groups { border: 2px dashed #FFFFFF !important; background-color: rgb(65, 65, 65) !important; }
       "))
     ),
-    fluidRow(
-      column(width = 3,
-        uiOutput(ns("condition_select")),
-        uiOutput(ns("gene_select")),
-        uiOutput(ns("numeric_column_select")),
-        actionButton(ns("plot"), "Plot"),
-        box(title = "Reorder & hide groups", status = "primary", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE, width = 12, uiOutput(ns("sortable_conditions"))),
-        box(title = "Labels", status = "primary", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE, width = 12,
-            textInput(ns("plot_title"), "Plot Title", value = "My Plot Title"),
-            textInput(ns("x_axis_label"), "X-axis Label", value = "Numeric Value"),
-            textInput(ns("y_axis_label"), "Y-axis Label", value = "Expression"),
-            div(style = "max-height: 150px; overflow-y: auto;",
-                sliderInput(ns("title_font_size"), "Title Font Size:", min = 10, max = 30, value = 18),
-                sliderInput(ns("axis_label_font_size"), "Axis Labels Font Size:", min = 8, max = 20, value = 15),
-                sliderInput(ns("axis_text_font_size"), "Axis Values Font Size:", min = 6, max = 16, value = 10),
-                sliderInput(ns("stat_text_font_size"), "Stat Text Font Size:", min = 2, max = 8, value = 5)
-            )
+    os_layout(
+      left = tagList(
+        os_panel(title = "Selection",
+                 uiOutput(ns("condition_select")),
+                 uiOutput(ns("gene_select")),
+                 uiOutput(ns("numeric_column_select")),
+                 actionButton(ns("plot"), "Plot")
         ),
-        box(title = "Size adjustments", status = "primary", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE, width = 12,
-            div(style = "max-height: 200px; overflow-y: auto;",
-                sliderInput(ns("plot_width"), "Plot Width (px)", min = 400, max = 2000, value = 800, step = 50),
-                sliderInput(ns("plot_height"), "Plot Height (px)", min = 400, max = 2000, value = 800, step = 50),
-                sliderInput(ns("plot_cols"), "Columns", min = 1, max = 10, value = 3),
-                sliderInput(ns("plot_rows"), "Rows", min = 1, max = 10, value = 3),
-                sliderInput(ns("dot_size"), "Dot Size", min = 1, max = 5, value = 2, step = 0.1),
-                sliderInput(ns("line_thickness"), "Line Thickness", min = 0.1, max = 3, value = 0.5, step = 0.1)
-            )
+        os_panel(title = "Reorder & hide groups",
+                 uiOutput(ns("sortable_conditions"))
         ),
-        box(title = "Statistics", status = "primary", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE, width = 12,
-            actionButton(ns("correlation_test"), "Perform Spearman Correlation Test"),
-            checkboxInput(ns("log2_y"), "Log2 Transform Y-axis", FALSE),
-            checkboxInput(ns("log2_x"), "Log2 Transform X-axis", FALSE)
-        ),
-        box(title = "Color selection", status = "primary", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE, width = 12,
-            selectInput(ns("color_palette"), "Color Palette",
-                        choices = c("Dark2","Set1","Accent","Paired","Set2","Set3","Pastel1","Pastel2","Custom","viridis","magma","plasma","inferno")),
-            conditionalPanel(condition = "input.color_palette == 'Custom'", ns = ns, uiOutput(ns("custom_palette_ui")))
-        ),
-        box(title = "Settings", status = "primary", solidHeader = TRUE, collapsible = TRUE, collapsed = TRUE, width = 12,
-            downloadButton(ns("download_settings"), "Export Settings"),
-            br(), br(),
-            fileInput(ns("upload_settings"), "Import Settings", accept = ".json"),
-            helpText("Export/Import color & plot settings")
+        os_panel(title = "Statistics",
+                 actionButton(ns("correlation_test"), "Perform Spearman Correlation Test"),
+                 checkboxInput(ns("log2_y"), "Log2 Transform Y-axis", FALSE),
+                 checkboxInput(ns("log2_x"), "Log2 Transform X-axis", FALSE)
         )
       ),
-      column(width = 9,
-        box(title = "Facet Plot", width = 12,
-            div(style = "position: relative;",
-                plotOutput(ns("facet_plot"), width = "auto", height = "auto"),
-                absolutePanel(top = 10, right = 10, draggable = FALSE,
-                              downloadButton(ns("download_plot_png"), "PNG"),
-                              br(),
-                              downloadButton(ns("download_plot_svg"), "SVG"),
-                              br(),
-                              downloadButton(ns("download_plot_pdf"), "PDF")
-                )
-            )
+      center = tagList(
+        os_panel(title = "Facet Plot",
+                 div(style = "position: relative;",
+                     plotOutput(ns("facet_plot"), width = "auto", height = "auto"),
+                     absolutePanel(top = 10, right = 10, draggable = FALSE,
+                                   downloadButton(ns("download_plot_png"), "PNG"),
+                                   br(),
+                                   downloadButton(ns("download_plot_svg"), "SVG"),
+                                   br(),
+                                   downloadButton(ns("download_plot_pdf"), "PDF")
+                     )
+                 )
+        )
+      ),
+      right = tagList(
+        os_panel(title = "Labels",
+                 textInput(ns("plot_title"), "Plot Title", value = "My Plot Title"),
+                 textInput(ns("x_axis_label"), "X-axis Label", value = "Numeric Value"),
+                 textInput(ns("y_axis_label"), "Y-axis Label", value = "Expression"),
+                 div(style = "max-height: 150px; overflow-y: auto;",
+                     sliderInput(ns("title_font_size"), "Title Font Size:", min = 10, max = 30, value = 18),
+                     sliderInput(ns("axis_label_font_size"), "Axis Labels Font Size:", min = 8, max = 20, value = 15),
+                     sliderInput(ns("axis_text_font_size"), "Axis Values Font Size:", min = 6, max = 16, value = 10),
+                     sliderInput(ns("stat_text_font_size"), "Stat Text Font Size:", min = 2, max = 8, value = 5)
+                 )
+        ),
+        os_panel(title = "Size adjustments",
+                 div(style = "max-height: 200px; overflow-y: auto;",
+                     sliderInput(ns("plot_width"), "Plot Width (px)", min = 400, max = 2000, value = 800, step = 50),
+                     sliderInput(ns("plot_height"), "Plot Height (px)", min = 400, max = 2000, value = 800, step = 50),
+                     sliderInput(ns("plot_cols"), "Columns", min = 1, max = 10, value = 3),
+                     sliderInput(ns("plot_rows"), "Rows", min = 1, max = 10, value = 3),
+                     sliderInput(ns("dot_size"), "Dot Size", min = 1, max = 5, value = 2, step = 0.1),
+                     sliderInput(ns("line_thickness"), "Line Thickness", min = 0.1, max = 3, value = 0.5, step = 0.1)
+                 )
+        ),
+        os_panel(title = "Color selection",
+                 selectInput(ns("color_palette"), "Color Palette",
+                             choices = c("Dark2","Set1","Accent","Paired","Set2","Set3","Pastel1","Pastel2","Custom","viridis","magma","plasma","inferno")),
+                 conditionalPanel(condition = "input.color_palette == 'Custom'", ns = ns, uiOutput(ns("custom_palette_ui")))
+        ),
+        os_panel(title = "Settings",
+                 downloadButton(ns("download_settings"), "Export Settings"),
+                 br(), br(),
+                 fileInput(ns("upload_settings"), "Import Settings", accept = ".json"),
+                 helpText("Export/Import color & plot settings")
         )
       )
     )

@@ -4,49 +4,46 @@
 
 uploadDatasetUI <- function(id) {
   ns <- NS(id)
-  tagList(
-    tags$head(
-      tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"),
-      tags$style(HTML(
-        ".tooltip-inner { max-width: 600px; text-align: left; }
-        .required-field { color: #d9534f; font-weight: bold; }
-        .inline-help-icon { margin-left: 5px; cursor: pointer; color: #5bc0de; }
-        .readonly-input { background-color: #f9f9f9; }
-        .readonly-input input { background-color: #f9f9f9 !important; }
-        .hidden-field { display: none !important; }
-        .legend-required { margin-top: 10px; color: #d9534f; font-style: italic; }"
-      )),
-      tags$script(HTML(
-        "$(document).ready(function(){
-           $('[data-toggle=\"tooltip\"]').tooltip({ html: true, container: 'body' });
-         });"
-      ))
-    ),
-    fluidRow(
-      column(3,
-        tags$div(style = "margin-top:15px; margin-bottom:5px;",
-                 tags$strong("Upload Data Files")
-        ),
+  os_layout(
+    left = tagList(
+      tags$head(
+        tags$link(rel = "stylesheet", href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"),
+        tags$style(HTML(
+          ".tooltip-inner { max-width: 600px; text-align: left; }
+          .required-field { color: #d9534f; font-weight: bold; }
+          .inline-help-icon { margin-left: 5px; cursor: pointer; color: #5bc0de; }
+          .readonly-input { background-color: #f9f9f9; }
+          .readonly-input input { background-color: #f9f9f9 !important; }
+          .hidden-field { display: none !important; }
+          .legend-required { margin-top: 10px; color: #d9534f; font-style: italic; }"
+        )),
+        tags$script(HTML(
+          "$(document).ready(function(){
+             $('[data-toggle=\"tooltip\"]').tooltip({ html: true, container: 'body' });
+           });"
+        ))
+      ),
+      os_panel(
+        title = "Upload Data Files",
         fileInput(ns("upload_data_files"), "Select data files (.txt)", 
                   accept = ".txt", multiple = TRUE),
-        
         tags$hr(),
-        
         fileInput(ns("upload_file"), "Upload Metadata File"),
         actionButton(ns("save"), "Save Changes"),
-        
         verbatimTextOutput(ns("debug_output"))
-      ),
-      
-      column(9,
-        titlePanel("Upload a new dataset"),
+      )
+    ),
+    center = tagList(
+      os_panel(
+        title = "Upload a new dataset",
         tags$div(
           style = "padding: 20px; text-align: center; color: #666;",
           tags$h4("Upload one or multiple data files"),
           tags$p()
         )
       )
-    )
+    ),
+    right = tagList()
   )
 }
 

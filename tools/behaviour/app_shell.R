@@ -75,11 +75,12 @@ testServer(app = ".", expr = {
 })
 
 # Last, because it only holds once every module has stopped building its own
-# page: a leftover tabItem shows up here as an extra pane.
-chk(length(gregexpr('id="shiny-tab-', html, fixed = TRUE)[[1]]) == length(MODULES),
+# page: a leftover tab shows up here as an extra pane. Counts tabsetPanel's
+# markup -- shinydashboard's id="shiny-tab-" is gone with dashboardPage.
+panes <- length(gregexpr('class="tab-pane', html, fixed = TRUE)[[1]])
+chk(panes == length(MODULES),
     "one tab pane per registered module, no module building its own",
-    length(gregexpr('id="shiny-tab-', html, fixed = TRUE)[[1]]), " panes for ",
-    length(MODULES), " modules")
+    panes, " panes for ", length(MODULES), " modules")
 
 unlink(tmp, recursive = TRUE)
 cat("\n", n, " checks passed\n", sep = "")

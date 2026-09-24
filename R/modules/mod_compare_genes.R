@@ -3,11 +3,6 @@ compareGenesUI <- function(id) {
   tagList(
     tags$head(
       tags$style(HTML("
-        .content-wrapper .box.box-primary { background: white !important; border: 1px solid #FFFFFF !important; }
-        .content-wrapper .box.box-primary > .box-body { background: white !important; }
-        .main-sidebar .box.box-primary { background: transparent !important; border: 1px solid #FFFFFF !important; }
-        .main-sidebar .box.box-primary > .box-body { background: transparent !important; }
-        .main-sidebar .box .box-header .box-title { font-size: 16px; font-family: Calibri, sans-serif; font-weight: bold; color: #FFFFFF; }
         .bucket-list-container, .rank-list-container, .rank-list { background-color: rgb(34, 45, 50) !important; }
         .rank-list-item { background-color: #7AA4B8 !important; border: 1px solid #FFFFFF !important; border-radius: 2px !important; text-align: center !important; color: #FFFFFF !important; padding: 10px !important; margin-bottom: 5px !important; font-size: 14px !important; font-family: Calibri, sans-serif !important; }
         .rank-list-item:hover { background-color: #5A6C7A !important; }
@@ -16,88 +11,81 @@ compareGenesUI <- function(id) {
         #colorpicker_ui .form-group > label { font-size: 14px; font-family: Calibri, sans-serif; color: #FFFFFF; }
       "))
     ),
-    fluidRow(
-      column(width = 3,
-        sidebarMenu(
-          menuItem("Boxplot Analysis", tabName = "boxplot_analysis", icon = icon("chart-bar")),
+    os_layout(
+      left = tagList(
+        os_panel(title = "Selection",
           uiOutput(ns("condition_select")),
           uiOutput(ns("gene_select")),
-          actionButton(ns("plot"), "Generate Plot"),
-          box(title = "Reorder groups", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              uiOutput(ns("sortable_conditions"))
-          ),
-          box(title = "Color selection", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              uiOutput(ns("colorpicker_ui"))
-          ),
-          box(title = "Labels", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              textInput(ns("plot_title"), "Plot Title", value = "Facet Plot"),
-              textInput(ns("x_label"), "X-axis Label", value = "Conditions"),
-              textInput(ns("y_label"), "Y-axis Label", value = "Expression"),
-              div(style = "max-height: 150px; overflow-y: auto;",
-                  sliderInput(ns("title_size"), "Title Font Size:", min = 8, max = 36, value = 15, step = 1),
-                  sliderInput(ns("axis_font_size"), "Axis Labels Font Size:", min = 8, max = 24, value = 15, step = 1),
-                  sliderInput(ns("group_font_size"), "Group Labels Font Size:", min = 8, max = 24, value = 15, step = 1),
-                  sliderInput(ns("facet_font_size"), "Facet Labels Font Size:", min = 8, max = 24, value = 15, step = 1)
-              )
-          ),
-          box(title = "Size adjustments", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              div(style = "max-height: 200px; overflow-y: auto;",
-                  sliderInput(ns("plot_width"), "Plot Width (pixels)", min = 400, max = 2000, value = 800, step = 50),
-                  sliderInput(ns("plot_height"), "Plot Height (pixels)", min = 400, max = 2000, value = 800, step = 50),
-                  sliderInput(ns("jitter_size"), "Jitter Dot Size:", min = 0, max = 10, value = 2.5, step = 0.1),
-                  sliderInput(ns("box_outline_size"), "Box Outline Thickness:", min = 0, max = 3, value = 0.5, step = 0.1),
-                  sliderInput(ns("median_line_size"), "Median Line Thickness:", min = 0, max = 3, value = 0.5, step = 0.1),
-                  sliderInput(ns("stat_line_size"), "Statistics Line Thickness:", min = 0, max = 3, value = 0.5, step = 0.1)
-              )
-          ),
-          box(title = "Grid Controls", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              checkboxInput(ns("show_major_x"), "Show Major Vertical Grid Lines", value = TRUE),
-              checkboxInput(ns("show_major_y"), "Show Major Horizontal Grid Lines", value = TRUE),
-              checkboxInput(ns("show_minor_x"), "Show Minor Vertical Grid Lines", value = FALSE),
-              checkboxInput(ns("show_minor_y"), "Show Minor Horizontal Grid Lines", value = FALSE),
-              sliderInput(ns("grid_line_size"), "Grid Line Thickness:", min = 0.1, max = 2, value = 0.2, step = 0.1)
-          ),
-          box(title = "Statistics", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              checkboxInput(ns("show_wilcox"), "Show Wilcoxon Test Lines", value = FALSE),
-              checkboxInput(ns("log2_transform"), "Log2 Transform Data", value = FALSE),
-              actionButton(ns("wilcox_test"), "Perform Pairwise Wilcox Test")
-          ),
-          box(title = "Y axis scale", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              uiOutput(ns("yaxis_sliders"))
-          ),
-          box(title = "Aesthetic Settings", status = "primary", solidHeader = TRUE,
-              collapsible = TRUE, collapsed = TRUE, width = 12,
-              downloadButton(ns("download_settings"), "Export Settings"),
-              br(), br(),
-              fileInput(ns("upload_settings"), "Import Settings", accept = ".json"),
-              br(),
-              helpText("Export/Import color scheme and plot settings")
-          )
+          actionButton(ns("plot"), "Generate Plot")
+        ),
+        os_panel(title = "Reorder groups",
+          uiOutput(ns("sortable_conditions"))
+        ),
+        os_panel(title = "Statistics",
+          checkboxInput(ns("show_wilcox"), "Show Wilcoxon Test Lines", value = FALSE),
+          checkboxInput(ns("log2_transform"), "Log2 Transform Data", value = FALSE),
+          actionButton(ns("wilcox_test"), "Perform Pairwise Wilcox Test")
+        ),
+        os_panel(title = "Y axis scale",
+          uiOutput(ns("yaxis_sliders"))
         )
       ),
-      column(width = 9,
-                  box(title = "Facet Plot", width = 12, status = "primary",
-                      div(style = "position: relative;",
-                          uiOutput(ns("plot_ui")),
-                          absolutePanel(top = 10, right = 10, draggable = FALSE,
-                                        downloadButton(ns("download_plot"), "Download PNG"),
-                                        br(),
-                                        downloadButton(ns("download_plot_svg"), "Download SVG"),
-                                        br(),
-                                        downloadButton(ns("download_plot_pdf"), "Download PDF")
-                          )
-                      )
-                  ),
-                  box(title = "Wilcoxon Test Results", width = 12, status = "primary",
-                      tableOutput(ns("wilcox_results"))
-                  )
+      center = tagList(
+        os_panel(title = "Facet Plot",
+          div(style = "position: relative;",
+            uiOutput(ns("plot_ui")),
+            absolutePanel(top = 10, right = 10, draggable = FALSE,
+              downloadButton(ns("download_plot"), "Download PNG"),
+              br(),
+              downloadButton(ns("download_plot_svg"), "Download SVG"),
+              br(),
+              downloadButton(ns("download_plot_pdf"), "Download PDF")
+            )
+          )
+        ),
+        os_panel(title = "Wilcoxon Test Results",
+          tableOutput(ns("wilcox_results"))
+        )
+      ),
+      right = tagList(
+        os_panel(title = "Color selection",
+          uiOutput(ns("colorpicker_ui"))
+        ),
+        os_panel(title = "Labels",
+          textInput(ns("plot_title"), "Plot Title", value = "Facet Plot"),
+          textInput(ns("x_label"), "X-axis Label", value = "Conditions"),
+          textInput(ns("y_label"), "Y-axis Label", value = "Expression"),
+          div(style = "max-height: 150px; overflow-y: auto;",
+            sliderInput(ns("title_size"), "Title Font Size:", min = 8, max = 36, value = 15, step = 1),
+            sliderInput(ns("axis_font_size"), "Axis Labels Font Size:", min = 8, max = 24, value = 15, step = 1),
+            sliderInput(ns("group_font_size"), "Group Labels Font Size:", min = 8, max = 24, value = 15, step = 1),
+            sliderInput(ns("facet_font_size"), "Facet Labels Font Size:", min = 8, max = 24, value = 15, step = 1)
+          )
+        ),
+        os_panel(title = "Size adjustments",
+          div(style = "max-height: 200px; overflow-y: auto;",
+            sliderInput(ns("plot_width"), "Plot Width (pixels)", min = 400, max = 2000, value = 800, step = 50),
+            sliderInput(ns("plot_height"), "Plot Height (pixels)", min = 400, max = 2000, value = 800, step = 50),
+            sliderInput(ns("jitter_size"), "Jitter Dot Size:", min = 0, max = 10, value = 2.5, step = 0.1),
+            sliderInput(ns("box_outline_size"), "Box Outline Thickness:", min = 0, max = 3, value = 0.5, step = 0.1),
+            sliderInput(ns("median_line_size"), "Median Line Thickness:", min = 0, max = 3, value = 0.5, step = 0.1),
+            sliderInput(ns("stat_line_size"), "Statistics Line Thickness:", min = 0, max = 3, value = 0.5, step = 0.1)
+          )
+        ),
+        os_panel(title = "Grid Controls",
+          checkboxInput(ns("show_major_x"), "Show Major Vertical Grid Lines", value = TRUE),
+          checkboxInput(ns("show_major_y"), "Show Major Horizontal Grid Lines", value = TRUE),
+          checkboxInput(ns("show_minor_x"), "Show Minor Vertical Grid Lines", value = FALSE),
+          checkboxInput(ns("show_minor_y"), "Show Minor Horizontal Grid Lines", value = FALSE),
+          sliderInput(ns("grid_line_size"), "Grid Line Thickness:", min = 0.1, max = 2, value = 0.2, step = 0.1)
+        ),
+        os_panel(title = "Aesthetic Settings",
+          downloadButton(ns("download_settings"), "Export Settings"),
+          br(), br(),
+          fileInput(ns("upload_settings"), "Import Settings", accept = ".json"),
+          br(),
+          helpText("Export/Import color scheme and plot settings")
+        )
       )
     )
   )
