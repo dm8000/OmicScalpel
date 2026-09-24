@@ -82,8 +82,15 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
     }
     
     observe({
+      # Re-reads when the metadata changes, but never over unsaved work. The
+      # legacy read the file once, with load_data(); meta() is reactive, so a
+      # plain observe() here re-runs on every change -- including the one this
+      # tab's own save triggers -- and silently discards whatever the
+      # researcher had typed and not yet saved.
+      current <- meta()
+      if (isTRUE(rv$data_modified)) return(invisible(NULL))
       log_message("Loading initial data")
-      rv$data         <- meta()
+      rv$data         <- current
       rv$dataset_list <- unique(as.character(rv$data$dataset))
       rv$current_dataset <- ds()
       rv$existing_columns <- colnames(rv$data)
