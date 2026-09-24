@@ -21,13 +21,23 @@ port <- if (length(pick) > 1) as.integer(pick[2]) else 8787L
 
 datasets <- unique(load_metadata()$dataset)
 
-ui <- dashboardPage(
-  dashboardHeader(title = paste("OmicScalpel /", m$title)),
-  dashboardSidebar(
-    selectInput("ds", "Active dataset", choices = datasets),
-    helpText(HTML("&nbsp;Standing in for the sidebar selector of the unified app."))
-  ),
-  dashboardBody(get(m$ui)(m$id))
+# shinyApp() built in code does not serve www/ the way runApp(appDir) does, so
+# the stylesheet has to be published explicitly or the module renders unstyled.
+addResourcePath("os", "www")
+
+ui <- fluidPage(
+  title = paste("OmicScalpel /", m$title),
+  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "os/omicscalpel.css")),
+  tags$div(
+    class = "os-app",
+    div(
+      class = "os-topbar",
+      div(class = "os-brand", m$title),
+      selectInput("ds", NULL, choices = datasets, width = "240px"),
+      div(class = "os-context", "standing in for the app's top bar")
+    ),
+    div(class = "os-tabs", div(class = "tab-content", get(m$ui)(m$id)))
+  )
 )
 
 server <- function(input, output, session) {
