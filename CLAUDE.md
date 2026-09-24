@@ -46,12 +46,17 @@ edit them**.
 
 ## Before committing a change to a module
 
-    Rscript tools/lint_ns.R [--single-dataset] R/modules/mod_<id>.R
-    Rscript tools/smoke_test.R <id>
+    ./tools/verify.sh                        # everything
     Rscript tools/run_module.R <id>          # to look at it
 
-`--single-dataset` for `scope = "one"` modules. Fixtures must keep two datasets:
-with one, a tab that ignores the shared dataset passes by accident.
+`verify.sh` runs three linters, the data-layer test, the smoke test and every
+behaviour test. The linters each came from a defect that shipped: an
+un-namespaced id, `filter(dataset == dataset)` under data masking, and a
+control that vanished in conversion.
+
+Fixtures must keep two datasets: with one, a tab that ignores the shared
+dataset passes by accident. They must also keep numeric columns, or the cutoff
+and correlation tabs have nothing to act on and pass by having no work.
 
 ## Known, accepted, not fixed
 

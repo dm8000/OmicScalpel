@@ -69,10 +69,29 @@ a missing package blocks.
 ## 3. Before committing
 
 ```sh
-Rscript tools/lint_ns.R --single-dataset R/modules/mod_my_thing.R   # --single-dataset only for scope "one"
-Rscript tools/smoke_test.R my_thing
+./tools/verify.sh                        # everything, cheapest first
 Rscript tools/run_module.R my_thing      # then open the printed URL
 ```
+
+Or the individual checks, if you want them one at a time:
+
+```sh
+Rscript tools/lint_ns.R --single-dataset R/modules/mod_my_thing.R  # --single-dataset only for scope "one"
+Rscript tools/lint_masking.R R/modules/mod_my_thing.R
+Rscript tools/lint_parity.R my_thing
+Rscript tools/smoke_test.R my_thing
+```
+
+Each of the three linters exists because of a defect that shipped:
+
+- `lint_ns.R` -- an un-namespaced id parses, renders, and stops talking to the
+  server.
+- `lint_masking.R` -- `function(dataset) filter(dataset == dataset)` compares
+  the column with itself under data masking, keeps every row of every dataset,
+  and plots a plausible wrong answer.
+- `lint_parity.R` -- a control can simply go missing. It compares the module's
+  ids against the legacy app's; anything deliberately dropped is declared, with
+  a reason, in `tools/parity-exceptions.txt`.
 
 The smoke test instantiates the module against every dataset in the fixture,
 not just the first. Keep at least two datasets in `data-sample/`: with one, a
