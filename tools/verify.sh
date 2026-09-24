@@ -41,6 +41,8 @@ step "namespaces" sh -c '
     cat("every built module is namespaced\n")
   '"'"''
 
+step "no control was lost in conversion" Rscript tools/lint_parity.R
+
 step "dplyr masking" sh -c '
   Rscript tools/lint_masking.R app.R R/*.R R/modules/*.R 2>/dev/null &&
   echo "no verb compares a column with itself"'

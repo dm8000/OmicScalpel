@@ -56,6 +56,13 @@ testServer(app = ".", expr = {
   chk(identical(active_dataset(), first),
       "go_to() switches the dataset as well as the tab", active_dataset())
 
+  # The sidebar's re-read button must actually re-read, for the case where the
+  # spreadsheet was changed outside the app and nothing here could notice.
+  before <- metadata_version()
+  session$setInputs(reload_metadata = 1)
+  chk(metadata_version() > before, "the re-read button bumps the metadata version",
+      before, " -> ", metadata_version())
+
   # The active dataset disappears from the file. It must fall back, not sit
   # pointing at a dataset that is gone.
   m <- load_metadata()

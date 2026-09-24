@@ -59,6 +59,12 @@ ui <- dashboardPage(
     selectInput("active_dataset", "Active dataset", choices = NULL, width = "95%"),
     tags$div(style = "padding: 0 15px 10px 15px; font-size: 85%; opacity: .7;",
              "Used by every single-dataset tab."),
+    # Two of the legacy apps carried a "Re-read metadata" button, for when the
+    # spreadsheet is edited outside the app. Saving from a tab refreshes every
+    # other tab on its own; this covers the case nothing here can observe.
+    tags$div(style = "padding: 0 15px 12px 15px;",
+             actionButton("reload_metadata", "Re-read metadata",
+                          icon = icon("rotate"), class = "btn-xs")),
     sidebar_menu()
   ),
   dashboardBody(body_tabs())
@@ -90,6 +96,11 @@ server <- function(input, output, session) {
     if (!identical(active_dataset(), input$active_dataset)) {
       active_dataset(input$active_dataset)
     }
+  })
+
+  observeEvent(input$reload_metadata, {
+    invalidate_metadata()
+    showNotification("Metadata re-read from disk.", duration = 3)
   })
 
   output$dataset_badge <- renderText({

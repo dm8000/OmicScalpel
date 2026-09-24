@@ -1,0 +1,15 @@
+# Controls a legacy app had that its module deliberately does not.
+# Format: <module_id> <id>   # reason
+#
+# Anything not listed here and missing from a module is a regression.
+
+compare_genes        dataset            # the dataset is chosen once, in the sidebar
+compare_samples      dataset            # idem
+correlation_analysis dataset            # idem
+export_matrix        dataset            # idem
+cutoff_maker         dataset            # idem
+metadata_editor      dataset            # idem
+metadata_editor      dataset_selector   # idem (it was a renderUI wrapper)
+
+correlation_analysis reload_metadata    # moved to the sidebar, once for every tab
+compare_samples      reload_metadata    # idem
