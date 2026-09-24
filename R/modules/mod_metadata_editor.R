@@ -20,44 +20,49 @@ metadataEditorUI <- function(id) {
       });"
       ))
     ),
-    titlePanel("Edit, create or upload metadata"),
-    fluidRow(
-      column(width = 3,
-        actionButton(ns("save"), "Save", icon = icon("save")),
+    os_layout(
+      left = os_panel(
+        title = "Columns",
         uiOutput(ns("existing_columns_ui")),
-        checkboxInput(ns("toggle_na"), "Hide Columns with only 'NA'", value = TRUE),
-        tags$label(
-          class = "control-label file-input-label",
-          "Upload tab separated .txt with your metadata",
-          tags$span(
-            icon("question-circle"), class = "inline-help-icon",
-            `data-toggle` = "tooltip", `data-html` = "true", `data-placement` = "right",
-            title = HTML("
-<div style='text-align: left; max-width: 650px;'>
-  <strong>Data Structure Example:</strong><br>
-  <pre style='font-family: monospace; font-size: 13px; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 8px 0;'>
-SampleID      <span class='red-field'>dataset</span> <span class='red-field'>Data.type</span> <span class='red-field'>Author</span> Cell.type        Lineage
-A38.WAT.D0.1  A38       RNAseq      Diogo    white.adipocytes Primary
-  </pre>
-  <strong>Instructions:</strong> 
-  <ol style='padding-left: 20px; margin-top: 10px;'> 
-    <li>These fields are <span class='red-field'>required</span> (<span class='red-field'>SampleID</span>, <span class='red-field'>dataset</span>, <span class='red-field'>Data.type</span>, <span class='red-field'>Author</span>)</li>
-    <li>SampleIDs must match your data matrix and be unique</li>
-    <li>You can add your own classifiers (treatment, etc.)</li>
-    <li>Use existing nomenclature where possible</li>
-    <li>If external data, fill LABEID column with GSE ID—otherwise omit the column</li>
-    <li>Save after uploading</li>
-  </ol> 
-</div>
-"
+        checkboxInput(ns("toggle_na"), "Hide Columns with only 'NA'", value = TRUE)
+      ),
+      center = os_panel(
+        title = "Metadata",
+        DTOutput(ns("table")),
+        verbatimTextOutput(ns("debug_output"))
+      ),
+      right = os_panel(
+        title = "Upload & Save",
+        actionButton(ns("save"), "Save", icon = icon("save")),
+          tags$label(
+            class = "control-label file-input-label",
+            "Upload tab separated .txt with your metadata",
+            tags$span(
+              icon("question-circle"), class = "inline-help-icon",
+              `data-toggle` = "tooltip", `data-html` = "true", `data-placement` = "right",
+              title = HTML("
+  <div style='text-align: left; max-width: 650px;'>
+    <strong>Data Structure Example:</strong><br>
+    <pre style='font-family: monospace; font-size: 13px; background: #f8f9fa; padding: 10px; border-radius: 4px; margin: 8px 0;'>
+  SampleID      <span class='red-field'>dataset</span> <span class='red-field'>Data.type</span> <span class='red-field'>Author</span> Cell.type        Lineage
+  A38.WAT.D0.1  A38       RNAseq      Diogo    white.adipocytes Primary
+    </pre>
+    <strong>Instructions:</strong> 
+    <ol style='padding-left: 20px; margin-top: 10px;'> 
+      <li>These fields are <span class='red-field'>required</span> (<span class='red-field'>SampleID</span>, <span class='red-field'>dataset</span>, <span class='red-field'>Data.type</span>, <span class='red-field'>Author</span>)</li>
+      <li>SampleIDs must match your data matrix and be unique</li>
+      <li>You can add your own classifiers (treatment, etc.)</li>
+      <li>Use existing nomenclature where possible</li>
+      <li>If external data, fill LABEID column with GSE ID—otherwise omit the column</li>
+      <li>Save after uploading</li>
+    </ol> 
+  </div>
+  "
+            )
           )
         )
-      ),
-      fileInput(ns("upload_file"), NULL, accept = ".txt"),
-      verbatimTextOutput(ns("debug_output"))
-      ),
-      column(width = 9,
-        DTOutput(ns("table"))
+        ,
+        fileInput(ns("upload_file"), NULL, accept = ".txt")
       )
     )
   )
