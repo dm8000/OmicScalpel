@@ -3,7 +3,7 @@
 # Replaces nine separately deployed apps. Two things are shared here and nowhere
 # else, which is the whole point of merging them:
 #
-#   active_dataset -- picked once in the sidebar, read by every module that
+#   active_dataset -- picked once in the top bar, read by every module that
 #                     works on a single dataset. Before, the researcher chose
 #                     the same dataset in six different apps.
 #   shared_meta    -- Metadata.xlsx read once per change instead of once per
@@ -16,58 +16,50 @@
 # dashboardPage(). Sourcing it here works either way, and under shiny-server too.
 source("global.R")
 
-
 # --- ui --------------------------------------------------------------------
 
-sidebar_menu <- function() {
-  items <- list()
-  for (g in module_groups()) {
-    items <- c(items, list(tags$li(class = "header", toupper(g))))
-    for (m in MODULES) {
-      if (!identical(m$group, g)) next
-      items <- c(items, list(menuItem(m$title, tabName = m$id, icon = icon(m$icon))))
+# No shinydashboard here. Its header and sidebar were what put a logo block and
+# a collapse button on top of the left panel in the first place, and its
+# stylesheet then fought every attempt to darken a panel body. The markup is
+# ours now: see R/ui_helpers.R and www/omicscalpel.css.
+
+module_tabs <- function() {
+  panels <- list()
+  last_group <- NULL
+  for (m in MODULES) {
+    if (!exists(m$ui, mode = "function")) next
+    label <- m$title
+    if (!is.null(last_group) && !identical(m$group, last_group)) {
+      # marks where Explore ends and Export begins, for the CSS separator
+      label <- tagList(span(class = "os-group-mark"), m$title)
     }
+    last_group <- m$group
+    panels[[length(panels) + 1L]] <- tabPanel(title = label, value = m$id,
+                                              get(m$ui)(m$id))
   }
-  do.call(sidebarMenu, c(list(id = "tabs"), items))
+  do.call(tabsetPanel, c(list(id = "tabs", type = "tabs"), unname(panels)))
 }
 
-body_tabs <- function() {
-  built <- Filter(function(m) exists(m$ui, mode = "function"), MODULES)
-  # unname: MODULES is a named list, lapply keeps the names, and do.call passes
-  # a named argument to tabItems as an HTML *attribute* -- the whole tab gets
-  # escaped into the <div> tag instead of rendered. It still returns 200.
-  tabs <- unname(lapply(built, function(m) tabItem(tabName = m$id, get(m$ui)(m$id))))
-  missing <- setdiff(names(MODULES), names(built))
-  tabs <- c(tabs, lapply(missing, function(id) tabItem(
-    tabName = id,
-    box(width = 12, status = "warning", title = MODULES[[id]]$title,
-        "Not converted yet.")
-  )))
-  do.call(tabItems, tabs)
-}
-
-ui <- dashboardPage(
-  dashboardHeader(
-    title = "OmicScalpel",
-    tags$li(class = "dropdown",
-            tags$span(class = "navbar-text",
-                      style = "line-height:50px; padding-right:12px;",
-                      textOutput("dataset_badge", inline = TRUE)))
+ui <- fluidPage(
+  title = "OmicScalpel",
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "omicscalpel.css")
   ),
-  dashboardSidebar(
-    width = 260,
-    selectInput("active_dataset", "Active dataset", choices = NULL, width = "95%"),
-    tags$div(style = "padding: 0 15px 10px 15px; font-size: 85%; opacity: .7;",
-             "Used by every single-dataset tab."),
-    # Two of the legacy apps carried a "Re-read metadata" button, for when the
-    # spreadsheet is edited outside the app. Saving from a tab refreshes every
-    # other tab on its own; this covers the case nothing here can observe.
-    tags$div(style = "padding: 0 15px 12px 15px;",
-             actionButton("reload_metadata", "Re-read metadata",
-                          icon = icon("rotate"), class = "btn-xs")),
-    sidebar_menu()
-  ),
-  dashboardBody(body_tabs())
+  tags$div(
+    class = "os-app",
+    div(
+      class = "os-topbar",
+      div(class = "os-brand", "OmicScalpel"),
+      selectInput("active_dataset", NULL, choices = NULL, width = "240px"),
+      div(class = "os-context", textOutput("dataset_context", inline = TRUE)),
+      div(
+        class = "os-topbar-right",
+        actionButton("reload_metadata", "Re-read metadata",
+                     icon = icon("rotate"), class = "btn-xs")
+      )
+    ),
+    div(class = "os-tabs", module_tabs())
+  )
 )
 
 # --- server ----------------------------------------------------------------
@@ -103,19 +95,30 @@ server <- function(input, output, session) {
     showNotification("Metadata re-read from disk.", duration = 3)
   })
 
-  output$dataset_badge <- renderText({
+  # What the top bar says about the active dataset: enough to know whether the
+  # tab you are about to open can do anything with it.
+  output$dataset_context <- renderText({
     ds <- active_dataset()
-    if (is.null(ds)) "no dataset" else paste("Dataset:", ds)
+    if (is.null(ds)) return("no dataset")
+    md <- shared_meta()
+    n  <- sum(md$dataset == ds, na.rm = TRUE)
+    ty <- unique(md$`Data.type`[md$dataset == ds])
+    ty <- ty[!is.na(ty)]
+    units <- list_units(ds)
+    paste0(n, " samples",
+           if (length(ty)) paste0(" · ", paste(ty, collapse = "/")) else "",
+           " · ", if (length(units)) paste(units, collapse = ", ") else "no matrix")
   })
 
   # Handed to the modules so a tab can send the user elsewhere without knowing
-  # there is a dashboard around it. data-summary is the one that uses it.
-  go_to <- function(tab, dataset = NULL) {
+  # there is a dashboard around it. tab = NULL means "change the dataset and
+  # stay where you are", which is what the summary tab's Load button does.
+  go_to <- function(tab = NULL, dataset = NULL) {
     if (!is.null(dataset)) {
       active_dataset(dataset)
       updateSelectInput(session, "active_dataset", selected = dataset)
     }
-    updateTabItems(session, "tabs", tab)
+    if (!is.null(tab)) updateTabsetPanel(session, "tabs", selected = tab)
   }
 
   for (m in MODULES) {

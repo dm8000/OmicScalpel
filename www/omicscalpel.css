@@ -1,0 +1,292 @@
+/* OmicScalpel -- dark theme.
+ *
+ * The app owns its markup (R/ui_helpers.R), so this file styles our own
+ * classes rather than overriding a framework. Only Shiny's own widgets and the
+ * third-party outputs (DT, plotly, selectize, rhandsontable) need overriding.
+ */
+
+:root {
+  --os-bg:         #141414;
+  --os-surface:    #1c1c1c;
+  --os-surface-2:  #232323;
+  --os-border:     #323232;
+  --os-border-2:   #3f3f3f;
+  --os-text:       #d8d8d8;
+  --os-muted:      #8a8a8a;
+  --os-accent:     #d98e3a;
+  --os-accent-dim: #6d4a1e;
+  --os-danger:     #c05b4d;
+  --os-radius:     3px;
+}
+
+html, body {
+  background: var(--os-bg);
+  color: var(--os-text);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container-fluid { padding: 0; }
+.os-app { min-height: 100vh; }
+
+/* --------------------------------------------------------------- topbar -- */
+
+.os-topbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 7px 16px;
+  background: var(--os-surface);
+  border-bottom: 1px solid var(--os-border);
+}
+
+.os-brand {
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--os-text);
+  white-space: nowrap;
+}
+
+.os-topbar .form-group { margin: 0; }
+.os-topbar .shiny-input-container { width: 240px !important; margin: 0; }
+.os-topbar label { display: none; }
+
+.os-context { color: var(--os-muted); font-size: 12px; white-space: nowrap; }
+.os-topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+/* ------------------------------------------------------------- tab strip -- */
+
+.os-tabs .nav-tabs {
+  background: var(--os-surface);
+  border-bottom: 1px solid var(--os-border);
+  padding: 0 10px;
+  margin: 0;
+}
+
+.os-tabs .nav-tabs > li { margin: 0; }
+
+.os-tabs .nav-tabs > li > a {
+  color: var(--os-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 9px 14px;
+  font-size: 12px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.os-tabs .nav-tabs > li > a:hover,
+.os-tabs .nav-tabs > li > a:focus {
+  color: var(--os-text);
+  background: transparent;
+  border-color: transparent;
+  border-bottom-color: var(--os-border-2);
+}
+
+.os-tabs .nav-tabs > li.active > a,
+.os-tabs .nav-tabs > li.active > a:hover,
+.os-tabs .nav-tabs > li.active > a:focus {
+  color: var(--os-text);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--os-accent);
+}
+
+.os-tabs .tab-content { padding: 14px; }
+
+/* ---------------------------------------------------------------- panel -- */
+
+.os-panel {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius);
+  margin-bottom: 12px;
+}
+
+.os-panel-head {
+  background: var(--os-surface-2);
+  border-bottom: 1px solid var(--os-border);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--os-muted);
+}
+
+.os-panel-body { padding: 10px; }
+
+/* the middle column is the point of the layout */
+.os-center > .os-panel { border-left: 2px solid var(--os-accent-dim); }
+
+.os-section {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--os-muted);
+  margin: 12px 0 6px 0;
+}
+
+/* --------------------------------------------------------------- inputs -- */
+
+.form-control, .selectize-input, .selectize-dropdown,
+input[type="text"], input[type="number"], textarea, select {
+  background-color: var(--os-surface-2);
+  color: var(--os-text);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius);
+  box-shadow: none;
+}
+
+.form-control:focus, .selectize-input.focus {
+  border-color: var(--os-accent);
+  box-shadow: none;
+}
+
+label, .control-label {
+  color: var(--os-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.help-block { color: var(--os-muted); font-size: 11px; }
+
+.checkbox label, .radio label {
+  text-transform: none;
+  font-weight: 400;
+  color: var(--os-text);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+/* selectize */
+.selectize-input { padding: 5px 8px; }
+.selectize-dropdown { border-color: var(--os-border); }
+.selectize-dropdown .active { background: var(--os-accent-dim); color: #fff; }
+.selectize-input > .item {
+  background: var(--os-surface);
+  border: 1px solid var(--os-border-2);
+  color: var(--os-text);
+  border-radius: var(--os-radius);
+}
+.selectize-control.multi .selectize-input > div { background: var(--os-surface); }
+
+/* shinyWidgets pickerInput */
+.bootstrap-select > .btn { background: var(--os-surface-2); color: var(--os-text); border-color: var(--os-border); }
+.dropdown-menu { background: var(--os-surface-2); border-color: var(--os-border); }
+.dropdown-menu > li > a { color: var(--os-text); }
+.dropdown-menu > li > a:hover, .dropdown-menu > .active > a { background: var(--os-accent-dim); color: #fff; }
+
+/* buttons */
+.btn { border-radius: var(--os-radius); font-size: 12px; }
+.btn-default {
+  background: var(--os-surface-2);
+  border: 1px solid var(--os-border-2);
+  color: var(--os-text);
+}
+.btn-default:hover, .btn-default:focus {
+  background: var(--os-surface-2);
+  border-color: var(--os-accent);
+  color: #fff;
+}
+.btn-primary, .btn-success {
+  background: var(--os-accent);
+  border-color: var(--os-accent);
+  color: #171717;
+  font-weight: 600;
+}
+.btn-primary:hover, .btn-success:hover { background: #e59b48; border-color: #e59b48; color: #171717; }
+.btn-danger { background: var(--os-danger); border-color: var(--os-danger); }
+
+/* ion.rangeSlider */
+.irs--shiny .irs-line { background: var(--os-border); }
+.irs--shiny .irs-bar { background: var(--os-accent); border-color: var(--os-accent); }
+.irs--shiny .irs-handle > i:first-child { background: var(--os-accent); }
+.irs--shiny .irs-min, .irs--shiny .irs-max, .irs--shiny .irs-grid-text {
+  color: var(--os-muted); background: transparent;
+}
+.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single {
+  background: var(--os-accent); color: #171717;
+}
+
+/* ------------------------------------------------------------------- DT -- */
+
+.dataTables_wrapper { color: var(--os-text); }
+table.dataTable { background: transparent; color: var(--os-text); border-collapse: collapse; }
+table.dataTable thead th {
+  background: var(--os-surface-2);
+  color: var(--os-muted);
+  border-bottom: 1px solid var(--os-border);
+  font-size: 11px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+table.dataTable tbody td { border-top: 1px solid var(--os-border); }
+table.dataTable tbody tr { background: transparent; }
+table.dataTable tbody tr.odd { background: rgba(255, 255, 255, .02); }
+table.dataTable tbody tr.selected,
+table.dataTable tbody tr.selected td {
+  background: var(--os-accent-dim);
+  color: #fff;
+  box-shadow: none;
+}
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  background: var(--os-surface-2); color: var(--os-text); border: 1px solid var(--os-border);
+}
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate .paginate_button { color: var(--os-muted) !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: var(--os-accent-dim) !important; border-color: var(--os-border-2) !important; color: #fff !important;
+}
+
+/* ------------------------------------------------------- other widgets -- */
+
+/* the plot itself stays light: it is the exported artefact */
+.modebar { background: transparent !important; }
+.modebar-btn path { fill: var(--os-muted) !important; }
+
+.handsontable, .handsontable td, .handsontable th {
+  background: var(--os-surface); color: var(--os-text); border-color: var(--os-border);
+}
+.handsontable th { background: var(--os-surface-2); color: var(--os-muted); }
+
+.rank-list { background: var(--os-surface-2); border: 1px solid var(--os-border); }
+.rank-list-item {
+  background: var(--os-surface); color: var(--os-text);
+  border: 1px solid var(--os-border-2); border-radius: var(--os-radius);
+}
+
+/* notifications and modals */
+#shiny-notification-panel { bottom: 12px; right: 12px; }
+.shiny-notification {
+  background: var(--os-surface-2); color: var(--os-text);
+  border: 1px solid var(--os-border-2); border-left: 3px solid var(--os-accent);
+  border-radius: var(--os-radius); opacity: 1;
+}
+.shiny-notification-error { border-left-color: var(--os-danger); }
+.modal-content, .modal-header, .modal-footer {
+  background: var(--os-surface); color: var(--os-text); border-color: var(--os-border);
+}
+
+/* scrollbars, so the dark page does not end in a light strip */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--os-bg); }
+::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
+
+/* ---------------------------------------------------- legacy box(), if any -- */
+/* a module not yet converted to os_panel() still renders shinydashboard's
+   markup; AdminLTE is no longer loaded, so this is all the styling it gets */
+.box { background: var(--os-surface); border: 1px solid var(--os-border);
+       border-radius: var(--os-radius); margin-bottom: 12px; }
+.box-header { background: var(--os-surface-2); border-bottom: 1px solid var(--os-border); padding: 6px 10px; }
+.box-title { font-size: 11px; font-weight: 600; letter-spacing: .08em;
+             text-transform: uppercase; color: var(--os-muted); margin: 0; }
+.box-body { padding: 10px; }
