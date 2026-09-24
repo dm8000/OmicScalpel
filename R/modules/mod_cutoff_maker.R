@@ -1,8 +1,9 @@
 cutoffMakerUI <- function(id) {
   ns <- NS(id)
-  tagList(
-    tags$head(
-      tags$style(HTML("
+  os_layout(
+    left = tagList(
+      tags$head(
+        tags$style(HTML("
   /* Container principal do slider */
   .shiny-input-container {
     width: 100% !important;
@@ -25,65 +26,46 @@ cutoffMakerUI <- function(id) {
     top: 25px;
   }
 ")),
-      tags$style(HTML("
-        .box { border-radius: 5px; }
-        .content-wrapper { background-color: #f9f9f9; }
-        .main-header .logo { font-weight: bold; }
-        #table { overflow-y: auto; max-height: 60vh; }
-        .rhandsontable { overflow: visible; }
-        .btn-xs {
-          padding: 2px 6px;
-          font-size: 12px;
-          line-height: 1.5;
-          border-radius: 3px;
-          margin: 0 2px;
-        }
-      "))
-    ),
-    fluidRow(
-      column(width = 3),
-      column(width = 9,
-        box(
-          title = "Data Visualization & Controls",
-          status = "primary",
-          solidHeader = TRUE,
-          width = 8,
-          height = "90vh",
-          plotlyOutput(ns("dist_plot"), height = "60%"),
-          fluidRow(
-            column(12,
-              pickerInput(ns("numeric_col"), "Select Numeric Column:", choices = NULL)
-            )
-          ),
-          fluidRow(
-            column(12,
-              div(style = "text-align: right; margin-bottom: 5px;",
-                actionButton(ns("add_cutoff"), "+", class = "btn-xs"),
-                actionButton(ns("remove_cutoff"), "-", class = "btn-xs")
-              ),
-              uiOutput(ns("cutoff_sliders"))
-            )
-          ),
-          fluidRow(
-            column(12,
-              div(style = "text-align: right;",
-                actionBttn(ns("make_cutoff"), "Apply Cutoff", icon = icon("cut"), style = "material-flat", color = "primary", size = "sm")
-              )
-            )
-          )
+        tags$style(HTML("
+          .box { border-radius: 5px; }
+          .content-wrapper { background-color: #f9f9f9; }
+          .main-header .logo { font-weight: bold; }
+          #table { overflow-y: auto; max-height: 60vh; }
+          .rhandsontable { overflow: visible; }
+          .btn-xs {
+            padding: 2px 6px;
+            font-size: 12px;
+            line-height: 1.5;
+            border-radius: 3px;
+            margin: 0 2px;
+          }
+        "))
+      ),
+      os_panel(title = "Cutoffs",
+        pickerInput(ns("numeric_col"), "Select Numeric Column:", choices = NULL),
+        div(style = "text-align: right; margin-bottom: 5px;",
+          actionButton(ns("add_cutoff"), "+", class = "btn-xs"),
+          actionButton(ns("remove_cutoff"), "-", class = "btn-xs")
         ),
-        box(
-          title = "Data Table",
-          status = "info",
-          solidHeader = TRUE,
-          width = 4,
-          height = "90vh",
-          div(style = "height: 70vh; overflow-y: auto;",
-            rHandsontableOutput(ns("table"))
-          ),
-          br(),
-          actionBttn(ns("save"), "Save Changes", icon = icon("floppy-disk"), style = "material-flat", color = "primary", block = TRUE)
+        uiOutput(ns("cutoff_sliders")),
+        div(style = "text-align: right;",
+          actionBttn(ns("make_cutoff"), "Apply Cutoff", icon = icon("cut"), style = "material-flat", color = "primary", size = "sm")
         )
+      )
+    ),
+    center = tagList(
+      os_panel(title = "Distribution",
+        plotlyOutput(ns("dist_plot"), height = "60%")
+      ),
+      os_panel(title = "Data Table",
+        div(style = "height: 70vh; overflow-y: auto;",
+          rHandsontableOutput(ns("table"))
+        )
+      )
+    ),
+    right = tagList(
+      os_panel(title = "Saving Data",
+        actionBttn(ns("save"), "Save Changes", icon = icon("floppy-disk"), style = "material-flat", color = "primary", block = TRUE)
       )
     )
   )
