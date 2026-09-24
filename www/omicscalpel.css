@@ -195,13 +195,24 @@ label, .control-label {
   border-color: var(--os-accent);
   color: #fff;
 }
-.btn-primary, .btn-success {
+/* one primary action per view: btn-primary is the amber one. btn-success is
+   still important -- it is usually Save -- but it sits next to the primary and
+   two solid amber buttons side by side read as two competing calls to act. */
+.btn-primary {
   background: var(--os-accent);
   border-color: var(--os-accent);
   color: #171717;
   font-weight: 600;
 }
-.btn-primary:hover, .btn-success:hover { background: #e59b48; border-color: #e59b48; color: #171717; }
+.btn-primary:hover { background: #e59b48; border-color: #e59b48; color: #171717; }
+
+.btn-success {
+  background: transparent;
+  border: 1px solid var(--os-accent);
+  color: var(--os-accent);
+  font-weight: 600;
+}
+.btn-success:hover { background: var(--os-accent-dim); color: #fff; border-color: var(--os-accent); }
 .btn-danger { background: var(--os-danger); border-color: var(--os-danger); }
 
 /* ion.rangeSlider */
