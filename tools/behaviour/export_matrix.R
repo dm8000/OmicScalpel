@@ -19,9 +19,11 @@ DS      <- "DEMO_RNAseq"
 disk    <- load_expression(DS, "TPM")
 genes   <- disk[[1]][1:3]
 
+active <- reactiveVal(DS)
+
 testServer(
   exportMatrixServer,
-  args = list(ds = reactiveVal(DS), meta = reactive(meta_df), go_to = NULL),
+  args = list(ds = active, meta = reactive(meta_df), go_to = NULL),
   {
     session$setInputs(file_unit = "TPM", genes_list = genes,
                       metadata_fields = character(0),
@@ -53,6 +55,25 @@ testServer(
     cnt <- selected_matrix()
     chk(!isTRUE(all.equal(as.numeric(cnt[genes[1], ]), expected)),
         "changing the unit changes the matrix")
+
+    # The shared dataset propagates. This is the whole point of the merge: the
+    # tab has no selector of its own, so if ds() did not reach it the tab would
+    # quietly keep showing the first dataset forever.
+    active("DEMO_Array")
+    session$setInputs(file_unit = "TMM", genes_list = character(0))
+    session$flushReact()
+    other <- load_expression("DEMO_Array", "TMM")
+    m2 <- selected_matrix()
+    chk(setequal(colnames(m2), names(other)[-1]),
+        "switching the shared dataset switches the samples",
+        paste(head(colnames(m2), 2), collapse = ", "))
+    chk(isTRUE(all.equal(as.numeric(m2[other[[1]][1], ]),
+                         as.numeric(other[other[[1]] == other[[1]][1], -1]))),
+        "and the values are the other dataset's file")
+
+    active(DS)
+    session$setInputs(file_unit = "TPM")
+    session$flushReact()
 
     # metadata rows get prepended, in the order of the samples
     session$setInputs(file_unit = "TPM", metadata_fields = "Tissue")
