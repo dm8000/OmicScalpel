@@ -18,10 +18,9 @@ sample_sums_text <- function(mat) {
 
 exportMatrixUI <- function(id) {
   ns <- NS(id)
-  tagList(
-    titlePanel("Generate Expression Matrix"),
-    fluidRow(
-      column(width = 3,
+  os_layout(
+    left = tagList(
+      os_panel(title = "Selection",
         uiOutput(ns("unit_ui")),
         selectizeInput(ns("genes_list"), "Select genes:", choices = NULL, multiple = TRUE),
         helpText("Leave empty to include all genes"),
@@ -30,18 +29,25 @@ exportMatrixUI <- function(id) {
         selectizeInput(ns("metadata_fields"), "Select metadata fields to include:", choices = NULL, multiple = TRUE),
         hr(),
         checkboxInput(ns("do_log"), "+0.001 and log transform", FALSE),
-        checkboxInput(ns("do_zscore"), "Z-score normalization", FALSE),
+        checkboxInput(ns("do_zscore"), "Z-score normalization", FALSE)
+      )
+    ),
+    center = tagList(
+      os_panel(title = "Matrix",
+        DTOutput(ns("matrix_table"))
+      )
+    ),
+    right = tagList(
+      os_panel(title = "Export",
         actionButton(ns("generate_matrix"), "Generate matrix"),
-        downloadButton(ns("download_matrix"), "Download matrix"),
-        hr(),
+        downloadButton(ns("download_matrix"), "Download matrix")
+      ),
+      os_panel(title = "Checks",
         verbatimTextOutput(ns("matrix_checks")),
         plotOutput(ns("boxplot"), height = "250px"),
         hr(),
         h4("Expression sum"),
         verbatimTextOutput(ns("sample_sums"))
-      ),
-      column(width = 9,
-        DTOutput(ns("matrix_table"))
       )
     )
   )
