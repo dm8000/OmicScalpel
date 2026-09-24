@@ -7,7 +7,8 @@ badUI <- function(id) {
     actionButton("go", "Run", icon = icon("play")),             # 2 bare id in UI
     plotOutput(outputId = "plot"),                              # 3 bare named outputId
     uiOutput(ns("extra")),                                      #   correct, no report
-    conditionalPanel("input.mode == 'a'", helpText("x"))        # 4 conditionalPanel w/o ns
+    conditionalPanel("input.mode == 'a'", helpText("x")),       # 4 conditionalPanel w/o ns
+    tabItem(tabName = "leftover", h1("never shown"))            # 8 page shell in a module
   )
 }
 

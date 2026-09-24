@@ -16,7 +16,7 @@ out=$(Rscript lint_ns.R testdata/good_module.R 2>&1)
 if Rscript lint_ns.R --single-dataset testdata/bad_module.R >"$tmp" 2>&1; then
   fail "bad_module.R exited 0" "$tmp"
 fi
-for tok in 'dataset' 'go' 'plot' 'conditionalPanel' 'cutoff' 'new_name'; do
+for tok in 'dataset' 'go' 'plot' 'conditionalPanel' 'cutoff' 'new_name' 'tabItem'; do
   grep -qF "$tok" "$tmp" || fail "did not report $tok" "$tmp"
 done
 grep -qF 'input$dataset' "$tmp" || fail "did not report input\$dataset" "$tmp"

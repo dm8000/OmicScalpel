@@ -23,6 +23,14 @@ USAGE <- c(
 # so flagging it would be a false positive on correct code.
 ID_EXTRA   <- c("actionButton", "actionLink", "downloadButton",
                 "downloadLink", "radioButtons")
+
+# A module fills a tab; it does not build a page. A tabItem() left inside a
+# module nests a tab-pane in a tab-pane: the page still renders, still returns
+# 200, and the tab is simply always blank. Neither parse nor a smoke test sees
+# it, which is why it is checked here.
+PAGE_SHELL <- c("dashboardPage", "dashboardHeader", "dashboardSidebar",
+                "dashboardBody", "tabItems", "tabItem", "navbarPage",
+                "shinyApp", "runApp")
 NAMED_ONLY <- c(add_rank_list = "input_id")   # first positional arg is a label
 
 is_id_call <- function(fn) {
@@ -96,6 +104,12 @@ lint_file <- function(path, single_dataset) {
       if (is.call(rhs) && is.symbol(rhs[[1]]) && as.character(rhs[[1]]) == "function") {
         return(walk(rhs, as.character(x[[2]])))
       }
+    }
+
+    # E: a module must not build its own page shell
+    if (fnm %in% PAGE_SHELL) {
+      report(paste0(fnm, "("),
+             sprintf("%s() belongs to the app, not to a module", fnm))
     }
 
     # B: a conditionalPanel inside a module needs ns to read its own inputs
