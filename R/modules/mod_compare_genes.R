@@ -83,8 +83,6 @@ compareGenesUI <- function(id) {
         )
       ),
       column(width = 9,
-        tabItems(
-          tabItem(tabName = "boxplot_analysis",
                   box(title = "Facet Plot", width = 12, status = "primary",
                       div(style = "position: relative;",
                           uiOutput(ns("plot_ui")),
@@ -100,8 +98,6 @@ compareGenesUI <- function(id) {
                   box(title = "Wilcoxon Test Results", width = 12, status = "primary",
                       tableOutput(ns("wilcox_results"))
                   )
-          )
-        )
       )
     )
   )
