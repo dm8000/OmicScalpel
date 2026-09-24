@@ -29,17 +29,26 @@ myThingServer <- function(id, ds, meta, go_to = NULL) {
 }
 ```
 
-Three rules that the linter enforces, because breaking them still parses, still
+Four rules that the linter enforces, because breaking them still parses, still
 renders, and simply stops working:
 
 - every id in the UI goes through `ns()`;
 - an id built in the server -- in `renderUI`, in `showModal`, in a helper --
   goes through `session$ns()`;
 - `update*(session, "id", ...)` keeps its bare id. The module session
-  namespaces it already.
+  namespaces it already;
+- **no page shell.** No `dashboardPage`, `dashboardBody`, `tabItems`,
+  `tabItem`, `fluidPage`, `navbarPage` or `shinyApp`. A module fills one tab.
+  A leftover `tabItem` nests a tab-pane inside a tab-pane: the page renders,
+  returns 200, and that tab is blank forever.
 
 Read the hub only through `R/data_io.R`. A module that calls `read_excel` or
 `write_xlsx` itself has a bug.
+
+Do not keep module state in a file-level environment. `R/*.R` is sourced twice
+-- shiny autoloads it and `global.R` sources it again -- so such an environment
+exists twice and the two copies drift apart silently. Anything process-wide
+goes in `options()`; see `metadata_version()` in `R/data_io.R`.
 
 ## 2. The row
 

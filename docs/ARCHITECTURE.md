@@ -26,8 +26,16 @@ packages attached and dies on the first `dashboardPage()`.
 with `exists("MODULES")`: autoload has already defined it, so the guard is
 always true and the source never runs.
 
-The smoke test does not catch this, because it sources `global.R` itself. Only
-starting the app does. The same applies to `tabItems()`: pass it an *unnamed*
+Its second consequence is worse and took longer to find: `R/*.R` therefore gets
+sourced **twice**, into two different environments. Any state kept in a
+file-level environment exists twice, and the two copies drift. That is exactly
+what happened to the metadata version counter -- the writer bumped one, the app
+watched the other, and an edit in one tab never reached the others, which is
+the whole reason the apps were merged. Process-wide state lives in `options()`
+now.
+
+The smoke test does not catch any of this, because it sources `global.R`
+itself. Only starting the app does. The same applies to `tabItems()`: pass it an *unnamed*
 list, or htmltools turns each tab into an escaped HTML attribute and the page
 serves 200 with nine empty tabs.
 
