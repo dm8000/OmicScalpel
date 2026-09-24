@@ -35,8 +35,10 @@ children_of <- function(x) {
 }
 
 # every box title anywhere below this node
+# os_panel() puts its title in .os-panel-head; a module not yet converted still
+# uses shinydashboard's box(), whose title is an h3.box-title. Both count.
 titles_below <- function(x, acc = character(0)) {
-  if (is_tag(x) && has_class(x, "box-title")) {
+  if (is_tag(x) && (has_class(x, "box-title") || has_class(x, "os-panel-head"))) {
     acc <- c(acc, trimws(paste(unlist(x$children), collapse = "")))
   }
   for (ch in children_of(x)) acc <- titles_below(ch, acc)

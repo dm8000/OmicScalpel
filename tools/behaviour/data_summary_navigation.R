@@ -1,9 +1,10 @@
 #!/usr/bin/env Rscript
-# Behaviour test for the dataset-summary tab's navigation buttons.
+# Behaviour test for the dataset-summary tab's Load button.
 #
-# Written before the buttons exist, so they cannot be built to fit a weaker
-# test. It checks what the researcher actually needs: pick a row, press a
-# button, land on that tab with that dataset already active.
+# Six buttons, one per analysis tab, became one: select a row, load that
+# dataset, stay where you are. The guard about datasets with no expression
+# matrix went with them -- loading a metadata-only dataset is legitimate, and
+# the tab that needs a matrix is the one that should refuse.
 #
 #   Rscript tools/behaviour/data_summary_navigation.R
 
@@ -14,105 +15,54 @@ ok  <- function(w) { n <<- n + 1L; cat("  ok  ", w, "\n", sep = "") }
 no  <- function(w, ...) { cat("FAIL  ", w, ": ", ..., "\n", sep = ""); quit(status = 1) }
 chk <- function(c, w, ...) if (isTRUE(c)) ok(w) else no(w, ...)
 
-# A hub with a third dataset that has metadata but no expression file. Without
-# it the guard "this tab needs a matrix" has nothing to refuse and would pass
-# untested.
-tmp <- file.path(tempdir(), paste0("os-nav-", Sys.getpid()))
-dir.create(file.path(tmp, "hub"), recursive = TRUE)
-invisible(file.copy(list.files("data-sample", full.names = TRUE),
-                    file.path(tmp, "hub"), recursive = TRUE))
-writeLines(c(paste0("lib     = ", .libPaths()[1]),
-             paste0("hubdata = ", file.path(tmp, "hub")),
-             paste0("backups = ", file.path(tmp, "bk")),
-             paste0("logs    = ", file.path(tmp, "logs"))),
-           file.path(tmp, "config.txt"))
-Sys.setenv(OMICSCALPEL_CONFIG = file.path(tmp, "config.txt"))
-invisible(read_config(reload = TRUE))
-
-m <- load_metadata()
-ghost <- m[1, , drop = FALSE]
-ghost$dataset  <- "DEMO_NoMatrix"
-ghost$SampleID <- "DEMO_NoMatrix_S01"
-save_metadata(NULL, rbind(m, ghost))
-
-s <- load_datasets_summary()
-gs <- s[1, , drop = FALSE]; gs$dataset <- "DEMO_NoMatrix"
-save_datasets_summary(NULL, rbind(s, gs))
-
 meta_df <- load_metadata()
-chk(length(list_units("DEMO_NoMatrix")) == 0, "the fixture ghost has no expression file")
-chk(length(list_units("DEMO_RNAseq")) > 0,   "and a real one still has")
+both    <- sort(unique(meta_df$dataset))
+chk(length(both) >= 2, "the fixture has more than one dataset to choose between", length(both))
 
 # An environment, not a plain variable: `calls <- list()` inside testServer's
 # expr would create a local of that name while the spy kept writing to the one
-# out here, and every check would read an empty list and pass or fail for the
-# wrong reason. Same shadowing trap the correlation tab fell into.
+# out here, and every check would read an empty list.
 bus <- new.env(parent = emptyenv())
 bus$calls <- list()
-spy <- function(tab, dataset) bus$calls <- c(bus$calls, list(list(tab = tab, dataset = dataset)))
+spy <- function(tab = NULL, dataset = NULL) {
+  bus$calls <- c(bus$calls, list(list(tab = tab, dataset = dataset)))
+}
 
 testServer(
   dataSummaryServer,
-  args = list(ds = reactiveVal("DEMO_RNAseq"), meta = reactive(meta_df), go_to = spy),
+  args = list(ds = reactiveVal(both[1]), meta = reactive(meta_df), go_to = spy),
   {
-    click <- 0L
-    session$setInputs(dataset_selector = c("DEMO_RNAseq", "DEMO_Array", "DEMO_NoMatrix"))
+    session$setInputs(dataset_selector = both)
     session$flushReact()
 
-    # nothing selected: pressing a button must not navigate
+    bus$calls <- list()
     session$setInputs(summary_table_rows_selected = integer(0))
-    session$setInputs(goto_compare_genes = 1)
-    chk(length(bus$calls) == 0, "no row selected means no navigation", length(bus$calls))
+    session$setInputs(load_dataset = 1)
+    chk(length(bus$calls) == 0, "no row selected means nothing is loaded", length(bus$calls))
 
-    # Which displayed row holds which dataset, discovered by pressing a button
-    # that is always allowed. The test never reaches inside the module for a
-    # reactive's name: it only uses what a user can do.
-    row_of <- character(0)
-    for (i in 1:3) {
+    # each displayed row loads its own dataset, discovered by pressing the
+    # button rather than by reaching inside the module for a reactive's name
+    click <- 1L
+    seen <- character(0)
+    for (i in seq_along(both)) {
       bus$calls <- list()
       session$setInputs(summary_table_rows_selected = i)
       click <- click + 1L
-      do.call(session$setInputs, setNames(list(click), "goto_metadata_editor"))
-      row_of[i] <- if (length(bus$calls)) bus$calls[[1]]$dataset else NA_character_
+      session$setInputs(load_dataset = click)
+      seen[i] <- if (length(bus$calls)) bus$calls[[1]]$dataset else NA_character_
     }
-    chk(setequal(stats::na.omit(row_of),
-                 c("DEMO_RNAseq", "DEMO_Array", "DEMO_NoMatrix")),
-        "each displayed row navigates with its own dataset",
-        paste(row_of, collapse = ", "))
+    chk(setequal(stats::na.omit(seen), both),
+        "each row loads the dataset on that row", paste(seen, collapse = ", "))
 
-    row_rna   <- which(row_of == "DEMO_RNAseq")[1]
-    row_ghost <- which(row_of == "DEMO_NoMatrix")[1]
-
-    # a real dataset: every button navigates, and carries the row's dataset
-    for (tab in c("compare_genes", "compare_samples", "correlation_analysis",
-                  "export_matrix", "metadata_editor", "cutoff_maker")) {
-      bus$calls <- list()
-      session$setInputs(summary_table_rows_selected = row_rna)
-      do.call(session$setInputs, setNames(list(click <- click + 1L), paste0("goto_", tab)))
-      chk(length(bus$calls) == 1 && bus$calls[[1]]$tab == tab &&
-            bus$calls[[1]]$dataset == "DEMO_RNAseq",
-          paste0("goto_", tab, " navigates with the selected dataset"),
-          if (!length(bus$calls)) "no call" else paste(bus$calls[[1]]$tab, bus$calls[[1]]$dataset))
-    }
-
-    # a dataset with no matrix: the four analysis tabs refuse, the two
-    # metadata-only tabs still work
-    for (tab in c("compare_genes", "compare_samples", "correlation_analysis", "export_matrix")) {
-      bus$calls <- list()
-      session$setInputs(summary_table_rows_selected = row_ghost)
-      do.call(session$setInputs, setNames(list(click <- click + 1L), paste0("goto_", tab)))
-      chk(length(bus$calls) == 0, paste0("goto_", tab, " refuses a dataset with no matrix"),
-          length(bus$calls))
-    }
-    for (tab in c("metadata_editor", "cutoff_maker")) {
-      bus$calls <- list()
-      session$setInputs(summary_table_rows_selected = row_ghost)
-      do.call(session$setInputs, setNames(list(click <- click + 1L), paste0("goto_", tab)))
-      chk(length(bus$calls) == 1 && bus$calls[[1]]$dataset == "DEMO_NoMatrix",
-          paste0("goto_", tab, " works without a matrix"), length(bus$calls))
-    }
+    # it loads, it does not navigate
+    bus$calls <- list()
+    session$setInputs(summary_table_rows_selected = 1L)
+    click <- click + 1L
+    session$setInputs(load_dataset = click)
+    chk(length(bus$calls) == 1 && is.null(bus$calls[[1]]$tab),
+        "loading does not switch tab",
+        if (!length(bus$calls)) "no call" else paste("tab =", bus$calls[[1]]$tab))
   }
 )
 
-unlink(tmp, recursive = TRUE)
 cat("\n", n, " checks passed\n", sep = "")

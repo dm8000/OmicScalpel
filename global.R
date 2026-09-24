@@ -40,6 +40,7 @@ if (length(MODULE_PKG_MISSING)) {
   }
 }
 
+source("R/ui_helpers.R")
 source("R/data_io.R")
 
 for (m in MODULES) {

@@ -39,15 +39,9 @@ dataSummaryUI <- function(id) {
             "Locked (non-editable) columns"
           ),
           DTOutput(ns("summary_table")),
-          helpText("Select a row, then open that dataset in:"),
-          tagList(
-            actionButton(ns("goto_compare_genes"), "Compare genes"),
-            actionButton(ns("goto_compare_samples"), "Compare samples"),
-            actionButton(ns("goto_correlation_analysis"), "Correlation"),
-            actionButton(ns("goto_export_matrix"), "Export matrix"),
-            actionButton(ns("goto_metadata_editor"), "Edit metadata"),
-            actionButton(ns("goto_cutoff_maker"), "Cutoffs")
-          ),
+          helpText("Select a row to make that dataset the active one."),
+          actionButton(ns("load_dataset"), "Load dataset",
+                       icon = icon("circle-check"), class = "btn-primary"),
           br(),
           actionButton(ns("save_button"), "Save Changes", icon = icon("save"), class = "btn-success")
         )
@@ -216,45 +210,18 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
       showNotification("Manual save done.", type = "message", duration = 5)
     })
     
-    observeEvent(input$goto_compare_genes, {
+    # One button instead of six. Loading a dataset that has no expression
+    # matrix is legitimate -- the tab that needs one is the tab that should
+    # refuse -- so the guard the six buttons carried is gone with them.
+    observeEvent(input$load_dataset, {
       sel <- input$summary_table_rows_selected
-      if (length(sel) != 1) { showNotification("Select a dataset row first.", type = "warning"); return(invisible(NULL)) }
+      if (length(sel) != 1) {
+        showNotification("Select a dataset row first.", type = "warning")
+        return(invisible(NULL))
+      }
       d <- summary_data()[sel, "dataset", drop = TRUE]
-      if (length(list_units(d)) == 0) { showNotification(paste(d, "has no expression matrix."), type = "warning"); return(invisible(NULL)) }
-      if (!is.null(go_to)) go_to("compare_genes", d)
-    })
-    observeEvent(input$goto_compare_samples, {
-      sel <- input$summary_table_rows_selected
-      if (length(sel) != 1) { showNotification("Select a dataset row first.", type = "warning"); return(invisible(NULL)) }
-      d <- summary_data()[sel, "dataset", drop = TRUE]
-      if (length(list_units(d)) == 0) { showNotification(paste(d, "has no expression matrix."), type = "warning"); return(invisible(NULL)) }
-      if (!is.null(go_to)) go_to("compare_samples", d)
-    })
-    observeEvent(input$goto_correlation_analysis, {
-      sel <- input$summary_table_rows_selected
-      if (length(sel) != 1) { showNotification("Select a dataset row first.", type = "warning"); return(invisible(NULL)) }
-      d <- summary_data()[sel, "dataset", drop = TRUE]
-      if (length(list_units(d)) == 0) { showNotification(paste(d, "has no expression matrix."), type = "warning"); return(invisible(NULL)) }
-      if (!is.null(go_to)) go_to("correlation_analysis", d)
-    })
-    observeEvent(input$goto_export_matrix, {
-      sel <- input$summary_table_rows_selected
-      if (length(sel) != 1) { showNotification("Select a dataset row first.", type = "warning"); return(invisible(NULL)) }
-      d <- summary_data()[sel, "dataset", drop = TRUE]
-      if (length(list_units(d)) == 0) { showNotification(paste(d, "has no expression matrix."), type = "warning"); return(invisible(NULL)) }
-      if (!is.null(go_to)) go_to("export_matrix", d)
-    })
-    observeEvent(input$goto_metadata_editor, {
-      sel <- input$summary_table_rows_selected
-      if (length(sel) != 1) { showNotification("Select a dataset row first.", type = "warning"); return(invisible(NULL)) }
-      d <- summary_data()[sel, "dataset", drop = TRUE]
-      if (!is.null(go_to)) go_to("metadata_editor", d)
-    })
-    observeEvent(input$goto_cutoff_maker, {
-      sel <- input$summary_table_rows_selected
-      if (length(sel) != 1) { showNotification("Select a dataset row first.", type = "warning"); return(invisible(NULL)) }
-      d <- summary_data()[sel, "dataset", drop = TRUE]
-      if (!is.null(go_to)) go_to("cutoff_maker", d)
+      if (!is.null(go_to)) go_to(dataset = d)
+      showNotification(paste0("Active dataset: ", d), duration = 3)
     })
   })
 }
