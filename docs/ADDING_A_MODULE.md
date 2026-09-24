@@ -10,9 +10,16 @@ registry. Nothing else in the app needs to change.
 ```r
 myThingUI <- function(id) {
   ns <- NS(id)
-  fluidRow(
-    column(3, selectInput(ns("unit"), "Unit", choices = NULL)),
-    column(9, plotOutput(ns("plot")))
+  os_layout(
+    left = os_panel(title = "Selection",
+      selectInput(ns("unit"), "Unit", choices = NULL)
+    ),
+    center = os_panel(title = "Plot",
+      plotOutput(ns("plot"))
+    ),
+    right = os_panel(title = "Appearance",
+      checkboxInput(ns("log2"), "log2", FALSE)
+    )
   )
 }
 
@@ -29,7 +36,12 @@ myThingServer <- function(id, ds, meta, go_to = NULL) {
 }
 ```
 
-Four rules that the linter enforces, because breaking them still parses, still
+The layout is always the same three columns: what selects data on the left,
+the analysis in the middle, what changes its appearance or exports it on the
+right. `os_layout()` and `os_panel()` are in `R/ui_helpers.R`; there is no
+`box()`, no `fluidRow`/`column` at the top level and no shinydashboard.
+
+Five rules that the linters enforce, because breaking them still parses, still
 renders, and simply stops working:
 
 - every id in the UI goes through `ns()`;
@@ -40,7 +52,11 @@ renders, and simply stops working:
 - **no page shell.** No `dashboardPage`, `dashboardBody`, `tabItems`,
   `tabItem`, `fluidPage`, `navbarPage` or `shinyApp`. A module fills one tab.
   A leftover `tabItem` nests a tab-pane inside a tab-pane: the page renders,
-  returns 200, and that tab is blank forever.
+  returns 200, and that tab is blank forever;
+- **each panel in the column the registry declares.** `layout` in
+  `R/registry.R` says where every panel goes, and `lint_layout.R` renders the
+  UI and checks where they landed -- including refusing a panel that is not in
+  the map at all.
 
 Read the hub only through `R/data_io.R`. A module that calls `read_excel` or
 `write_xlsx` itself has a bug.

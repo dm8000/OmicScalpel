@@ -14,6 +14,26 @@
                    read it; adding a module means adding a row.
     R/modules/     one file per tab.
 
+## Look and layout
+
+The shell is `fluidPage`, not `dashboardPage`, and the markup is the app's own:
+`os_panel()` and `os_layout()` in `R/ui_helpers.R`, styled by
+`www/omicscalpel.css`. shinydashboard was dropped after AdminLTE kept painting
+the body of a `status="primary"` box white through a literal colour at high
+specificity with `!important` and through a pseudo-element underneath -- cache,
+CSS variables, rule order and specificity each ruled out by test. Owning the
+markup ended it in one move, and the header block and sidebar-collapse button
+that used to overlap the left panel went with it.
+
+Every analysis tab is three columns: data and selection on the left, the
+analysis in the middle, appearance and export on the right. Which panel goes
+where is declared per module in `R/registry.R` and checked by
+`tools/lint_layout.R`.
+
+**Plots stay light on purpose.** A figure is the exported artefact; it goes
+into a paper. Making the ggplot theme dark would change every downloaded file,
+not just the screen.
+
 ## One trap, written down because it cost three attempts
 
 **Shiny does not source `global.R` for this app.** Because the project has an
