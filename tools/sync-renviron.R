@@ -17,7 +17,8 @@ lib <- os_path("lib")
 
 targets <- unique(c(
   file.path(os_root(), ".Renviron"),
-  Sys.glob(file.path(os_root(), "*", ".Renviron"))
+  Sys.glob(file.path(os_root(), "*", ".Renviron")),
+  Sys.glob(file.path(os_root(), "legacy", "*", ".Renviron"))
 ))
 
 body <- c(

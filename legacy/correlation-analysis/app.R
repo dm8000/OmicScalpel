@@ -1,5 +1,5 @@
 # Paths come from config/config.txt -- see R/config.R
-source("../R/config.R")
+source("../../R/config.R")
 Sys.setenv(R_LIBS = os_path("lib"))
 Sys.setenv(R_LIBS_USER = os_path("lib"))
 .libPaths(os_path("lib"))

@@ -60,6 +60,6 @@ names(MODULES) <- vapply(MODULES, function(m) m$id, character(1))
 
 # Where each module's source lives, and which legacy app it came from.
 module_file <- function(m) file.path("R", "modules", paste0("mod_", m$id, ".R"))
-legacy_dir  <- function(m) gsub("_", "-", m$id)
+legacy_dir  <- function(m) file.path("legacy", gsub("_", "-", m$id))
 
 module_groups <- function() unique(vapply(MODULES, function(m) m$group, character(1)))
