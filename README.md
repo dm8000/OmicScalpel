@@ -13,7 +13,7 @@ follows it.
 
 | tab | what it does |
 |---|---|
-| Dataset summary | One row per dataset: sample size, tissue, species, which normalized files exist. Sex and age distributions for the datasets you select. The summary sheet is editable, with the derived columns locked. |
+| Dataset summary | One row per dataset: sample size, tissue, species, which normalized files exist. Sex and age distributions for the datasets you select. The summary sheet is editable, with the derived columns locked. Select a row and one of the buttons underneath to open that dataset straight in an analysis tab; a dataset with no expression matrix says so rather than opening a tab that cannot work. |
 | Compare genes | Boxplots with the **genes on the x axis and one panel per condition** — for asking how several genes compare within each group. Groups can be reordered and recoloured; labels, fonts and sizes are adjustable, and Wilcoxon comparisons can be drawn on the plot. |
 | Compare samples | The transpose: **conditions on the x axis, one panel per gene** — for asking how one gene differs between groups. Same plot controls, plus groups that can be hidden as well as reordered. |
 | Correlation | Gene expression against a continuous variable of the dataset, with the same plot controls. |
@@ -32,6 +32,10 @@ follows it.
 | Upload dataset | Add a new dataset: its expression files, its row in the dataset summary, and the metadata of its samples. |
 | Edit metadata | Edit, create or upload sample metadata for a dataset, column by column. |
 | Cutoffs | Define numeric cutoffs on a dataset's continuous columns and see the distribution they split. |
+
+The **Re-read metadata** button in the sidebar is only needed when the
+spreadsheet was changed outside the app -- saving from a tab already refreshes
+the others.
 
 Every save takes a timestamped backup first. **Two people saving the same sheet
 at the same time will lose one of the two edits** — see
