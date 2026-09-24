@@ -43,8 +43,13 @@ meta_df <- load_metadata()
 chk(length(list_units("DEMO_NoMatrix")) == 0, "the fixture ghost has no expression file")
 chk(length(list_units("DEMO_RNAseq")) > 0,   "and a real one still has")
 
-calls <- list()
-spy <- function(tab, dataset) calls[[length(calls) + 1L]] <<- list(tab = tab, dataset = dataset)
+# An environment, not a plain variable: `calls <- list()` inside testServer's
+# expr would create a local of that name while the spy kept writing to the one
+# out here, and every check would read an empty list and pass or fail for the
+# wrong reason. Same shadowing trap the correlation tab fell into.
+bus <- new.env(parent = emptyenv())
+bus$calls <- list()
+spy <- function(tab, dataset) bus$calls <- c(bus$calls, list(list(tab = tab, dataset = dataset)))
 
 testServer(
   dataSummaryServer,
@@ -57,18 +62,18 @@ testServer(
     # nothing selected: pressing a button must not navigate
     session$setInputs(summary_table_rows_selected = integer(0))
     session$setInputs(goto_compare_genes = 1)
-    chk(length(calls) == 0, "no row selected means no navigation", length(calls))
+    chk(length(bus$calls) == 0, "no row selected means no navigation", length(bus$calls))
 
     # Which displayed row holds which dataset, discovered by pressing a button
     # that is always allowed. The test never reaches inside the module for a
     # reactive's name: it only uses what a user can do.
     row_of <- character(0)
     for (i in 1:3) {
-      calls <- list()
+      bus$calls <- list()
       session$setInputs(summary_table_rows_selected = i)
       click <- click + 1L
       do.call(session$setInputs, setNames(list(click), "goto_metadata_editor"))
-      row_of[i] <- if (length(calls)) calls[[1]]$dataset else NA_character_
+      row_of[i] <- if (length(bus$calls)) bus$calls[[1]]$dataset else NA_character_
     }
     chk(setequal(stats::na.omit(row_of),
                  c("DEMO_RNAseq", "DEMO_Array", "DEMO_NoMatrix")),
@@ -81,30 +86,30 @@ testServer(
     # a real dataset: every button navigates, and carries the row's dataset
     for (tab in c("compare_genes", "compare_samples", "correlation_analysis",
                   "export_matrix", "metadata_editor", "cutoff_maker")) {
-      calls <- list()
+      bus$calls <- list()
       session$setInputs(summary_table_rows_selected = row_rna)
       do.call(session$setInputs, setNames(list(click <- click + 1L), paste0("goto_", tab)))
-      chk(length(calls) == 1 && calls[[1]]$tab == tab &&
-            calls[[1]]$dataset == "DEMO_RNAseq",
+      chk(length(bus$calls) == 1 && bus$calls[[1]]$tab == tab &&
+            bus$calls[[1]]$dataset == "DEMO_RNAseq",
           paste0("goto_", tab, " navigates with the selected dataset"),
-          if (!length(calls)) "no call" else paste(calls[[1]]$tab, calls[[1]]$dataset))
+          if (!length(bus$calls)) "no call" else paste(bus$calls[[1]]$tab, bus$calls[[1]]$dataset))
     }
 
     # a dataset with no matrix: the four analysis tabs refuse, the two
     # metadata-only tabs still work
     for (tab in c("compare_genes", "compare_samples", "correlation_analysis", "export_matrix")) {
-      calls <- list()
+      bus$calls <- list()
       session$setInputs(summary_table_rows_selected = row_ghost)
       do.call(session$setInputs, setNames(list(click <- click + 1L), paste0("goto_", tab)))
-      chk(length(calls) == 0, paste0("goto_", tab, " refuses a dataset with no matrix"),
-          length(calls))
+      chk(length(bus$calls) == 0, paste0("goto_", tab, " refuses a dataset with no matrix"),
+          length(bus$calls))
     }
     for (tab in c("metadata_editor", "cutoff_maker")) {
-      calls <- list()
+      bus$calls <- list()
       session$setInputs(summary_table_rows_selected = row_ghost)
       do.call(session$setInputs, setNames(list(click <- click + 1L), paste0("goto_", tab)))
-      chk(length(calls) == 1 && calls[[1]]$dataset == "DEMO_NoMatrix",
-          paste0("goto_", tab, " works without a matrix"), length(calls))
+      chk(length(bus$calls) == 1 && bus$calls[[1]]$dataset == "DEMO_NoMatrix",
+          paste0("goto_", tab, " works without a matrix"), length(bus$calls))
     }
   }
 )
