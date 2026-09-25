@@ -1,40 +1,45 @@
 dataSummaryUI <- function(id) {
   ns <- NS(id)
   os_layout(
+    widths = c(3, 5, 4),
+
+    # Left: the whole database, for the datasets you have selected.
     left = tagList(
       os_panel(title = "Selection",
         selectInput(ns("dataset_selector"), "Select Datasets:",
           choices = NULL, multiple = TRUE, selectize = TRUE
         )
-      )
-    ),
-    center = tagList(
-      tags$head(tags$style(HTML("
-        .dataTable { width: 100% !important; }
-        .dataTable td { padding: 6px !important; }
-      "))),
-      os_panel(title = "Dataset Summary",
-        tags$div(
-          style = "margin-bottom: 8px;",
-          tags$span(
-            style = "display:inline-block;width:12px;height:12px;background:#AEC6CF;margin-right:5px;border:1px solid #ccc;"
-          ),
-          "Locked (non-editable) columns"
-        ),
-        DTOutput(ns("summary_table")),
-        helpText("Select a row to make that dataset the active one."),
-        actionButton(ns("load_dataset"), "Load dataset",
-                     icon = icon("circle-check"), class = "btn-primary"),
-        br(),
-        actionButton(ns("save_button"), "Save Changes", icon = icon("save"), class = "btn-success")
-      )
-    ),
-    right = tagList(
+      ),
       os_panel(title = "Sex Distribution",
-        plotlyOutput(ns("sex_pie"), height = "300px")
+        plotlyOutput(ns("sex_pie"), height = "260px")
       ),
       os_panel(title = "Age Distribution",
-        plotlyOutput(ns("age_hist"), height = "300px")
+        plotlyOutput(ns("age_hist"), height = "260px")
+      )
+    ),
+
+    center = tagList(
+      os_panel(title = "Dataset Summary",
+        DTOutput(ns("summary_table")),
+        helpText("Select a row to inspect and edit that dataset on the right."),
+        actionButton(ns("load_dataset"), "Load dataset",
+                     icon = icon("circle-check"), class = "btn-primary")
+      )
+    ),
+
+    # Right: the one dataset selected in the table.
+    right = tagList(
+      os_panel(title = "Selected dataset", class = "os-scroll",
+        uiOutput(ns("row_editor")),
+        actionButton(ns("save_button"), "Save Changes",
+                     icon = icon("save"), class = "btn-success")
+      ),
+      os_panel(title = "Dataset distributions",
+        selectInput(ns("cat_var"), "Categorical", choices = NULL),
+        plotlyOutput(ns("ds_pie"), height = "220px"),
+        tags$hr(),
+        selectInput(ns("num_var"), "Numeric", choices = NULL),
+        plotlyOutput(ns("ds_hist"), height = "220px")
       )
     )
   )
@@ -141,7 +146,12 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
       md <- meta(); req(md, input$dataset_selector)
       md %>%
         filter(dataset %in% input$dataset_selector) %>%
-        mutate(Sex = fct_explicit_na(Sex, na_level = "(Missing)"))
+        mutate(Sex = fct_explicit_na(factor(Sex), na_level = "(Missing)"),
+               # Age arrives as text; without this the histogram fails with
+               # "stat_bin() requires a continuous x aesthetic", which plotly
+               # reports to the browser as "Error: [object Object]". The
+               # conversion existed, but only where the summary table is built.
+               Age = suppressWarnings(as.numeric(as.character(Age))))
     })
     
     output$sex_pie <- renderPlotly({
@@ -171,33 +181,176 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
                     "Has.count.data", "Has.Combat.batch.corrected.data")
       non_idx <- which(names(df) %in% non_edit) - 1
       
+      # Read-only: editing happens in the panel on the right, where a field has
+      # its own label and room to breathe. It also removes the pale blue
+      # formatStyle that marked locked columns -- DT writes that inline, so it
+      # overrode the dark theme and made half the table unreadable.
       datatable(
         df,
-        editable = list(target = "cell", disable = list(columns = non_idx)),
+        editable  = FALSE,
         selection = "single",
         options = list(pageLength = -1, dom = "t", ordering = TRUE,
                        scrollY = "600px", scrollX = TRUE),
         rownames = FALSE
-      ) %>%
-        formatStyle(
-          columns = names(df)[non_idx + 1],
-          backgroundColor = "#AEC6CF"
-        )
+      )
     })
     
-    observeEvent(input$summary_table_cell_edit, {
-      info <- input$summary_table_cell_edit
-      df   <- summary_data()
-      df[info$row, info$col + 1] <- info$value
-      summary_data(df)
+    # ---- the selected dataset, on the right -----------------------------
+
+    # Which row of the table is selected, as a dataset name. Everything on the
+    # right hangs off this; nothing on the right shows until a row is picked.
+    selected_dataset <- reactive({
+      sel <- input$summary_table_rows_selected
+      df  <- summary_data()
+      if (length(sel) != 1 || is.null(df)) return(NULL)
+      as.character(df[sel, "dataset", drop = TRUE])
     })
-    
+
+    # That dataset's samples, from the metadata rather than the summary sheet.
+    selected_meta <- reactive({
+      d <- selected_dataset(); md <- meta()
+      if (is.null(d) || is.null(md)) return(NULL)
+      md[md$dataset == d, , drop = FALSE]
+    })
+
+    # Columns worth offering. A column is categorical when it has between two
+    # and twenty distinct values and is not mostly numbers; numeric when enough
+    # of its values parse as numbers. Both ignore the literal "NA" the
+    # spreadsheet uses, or every column would look populated.
+    real_values <- function(x) {
+      v <- as.character(x)
+      v[!is.na(v) & v != "NA" & nzchar(trimws(v))]
+    }
+
+    categorical_cols <- function(df) {
+      keep <- vapply(names(df), function(cn) {
+        v <- real_values(df[[cn]])
+        if (length(v) < 2) return(FALSE)
+        n <- length(unique(v))
+        if (n < 2 || n > 20) return(FALSE)
+        mostly_numeric <- mean(!is.na(suppressWarnings(as.numeric(v)))) > 0.8
+        !mostly_numeric
+      }, logical(1))
+      sort(names(df)[keep])
+    }
+
+    numeric_cols <- function(df) {
+      keep <- vapply(names(df), function(cn) {
+        v <- real_values(df[[cn]])
+        length(v) >= 3 && mean(!is.na(suppressWarnings(as.numeric(v)))) > 0.8 &&
+          length(unique(v)) > 2
+      }, logical(1))
+      sort(names(df)[keep])
+    }
+
+    # The menus follow the dataset: a column that is empty for this dataset is
+    # not offered, which is the point of building them per dataset.
+    observeEvent(selected_meta(), {
+      md <- selected_meta(); req(md)
+      cats <- setdiff(categorical_cols(md), c("SampleID", "dataset"))
+      nums <- setdiff(numeric_cols(md), c("SampleID", "dataset"))
+      updateSelectInput(session, "cat_var", choices = cats,
+                        selected = if ("Sex" %in% cats) "Sex" else cats[1])
+      updateSelectInput(session, "num_var", choices = nums,
+                        selected = if ("Age" %in% nums) "Age" else nums[1])
+    })
+
+    output$ds_pie <- renderPlotly({
+      md <- selected_meta(); req(md, input$cat_var)
+      v <- real_values(md[[input$cat_var]])
+      req(length(v) > 0)
+      df <- as.data.frame(table(value = v), stringsAsFactors = FALSE)
+      plot_ly(df, labels = ~value, values = ~Freq, type = "pie",
+              textinfo = "label+percent", hoverinfo = "label+percent+value") %>%
+        layout(title = list(text = input$cat_var), showlegend = FALSE,
+               margin = list(t = 30, b = 10, l = 10, r = 10)) %>%
+        config(displayModeBar = FALSE)
+    })
+
+    output$ds_hist <- renderPlotly({
+      md <- selected_meta(); req(md, input$num_var)
+      v <- suppressWarnings(as.numeric(real_values(md[[input$num_var]])))
+      v <- v[!is.na(v)]
+      req(length(v) > 0)
+      plot_ly(x = v, type = "histogram", nbinsx = 20,
+              marker = list(color = "#d98e3a")) %>%
+        layout(title = list(text = input$num_var),
+               xaxis = list(title = input$num_var), yaxis = list(title = "Count"),
+               margin = list(t = 30, b = 40, l = 40, r = 10)) %>%
+        config(displayModeBar = FALSE)
+    })
+
+    # The selected row's fields, as labelled inputs. Derived columns are shown
+    # but not editable: sample size and the has-this-file flags are computed
+    # from the hub, so typing over them would be overwritten on the next read.
+    DERIVED <- c("dataset", "Sample_size",
+                 "Has.TMM.normalized.data", "Has.TPM.normalized.data",
+                 "Has.count.data", "Has.Combat.batch.corrected.data")
+
+    output$row_editor <- renderUI({
+      d <- selected_dataset()
+      if (is.null(d)) {
+        return(helpText("Select a row in the table to see and edit it here."))
+      }
+      df  <- summary_data()
+      row <- df[df$dataset == d, , drop = FALSE][1, ]
+      tagList(
+        tags$div(class = "os-section", d),
+        lapply(names(row), function(cn) {
+          val <- as.character(row[[cn]])
+          if (is.na(val)) val <- ""
+          if (cn %in% DERIVED) {
+            tags$div(class = "os-readonly",
+                     tags$span(class = "os-readonly-label", cn),
+                     tags$span(class = "os-readonly-value",
+                               if (nzchar(val)) val else "\u2014"))
+          } else {
+            textInput(session$ns(paste0("f_", cn)), cn, value = val, width = "100%")
+          }
+        })
+      )
+    })
+
+    # Save collects the fields from the panel on the right back into the row
+    # they came from. Only the selected dataset's row can change, so a save
+    # cannot touch a dataset nobody was looking at.
     observeEvent(input$save_button, {
-      df_edited <- summary_data()
-      df_orig   <- original_summary()
-      save_datasets_summary(df_orig, df_edited)
-      log_download(action = "save_summary")
-      showNotification("Manual save done.", type = "message", duration = 5)
+      d <- selected_dataset()
+      if (is.null(d)) {
+        showNotification("Select a dataset row first.", type = "warning")
+        return(invisible(NULL))
+      }
+      df  <- summary_data()
+      i   <- which(df$dataset == d)[1]
+      if (is.na(i)) {
+        showNotification(paste(d, "is no longer in the table."), type = "warning")
+        return(invisible(NULL))
+      }
+
+      changed <- character(0)
+      for (cn in setdiff(names(df), DERIVED)) {
+        v <- input[[paste0("f_", cn)]]
+        if (is.null(v)) next
+        before <- as.character(df[i, cn, drop = TRUE])
+        if (is.na(before)) before <- ""
+        if (!identical(as.character(v), before)) {
+          df[i, cn] <- v
+          changed <- c(changed, cn)
+        }
+      }
+
+      if (!length(changed)) {
+        showNotification("Nothing changed.", duration = 3)
+        return(invisible(NULL))
+      }
+
+      summary_data(df)
+      save_datasets_summary(original_summary(), df)
+      original_summary(df)
+      log_download(action = "save_summary", dataset = d,
+                   fields = paste(changed, collapse = ", "))
+      showNotification(paste0("Saved ", d, ": ", paste(changed, collapse = ", ")),
+                       type = "message", duration = 5)
     })
     
     # One button instead of six. Loading a dataset that has no expression

@@ -100,14 +100,26 @@ server <- function(input, output, session) {
   output$dataset_context <- renderText({
     ds <- active_dataset()
     if (is.null(ds)) return("no dataset")
-    md <- shared_meta()
-    n  <- sum(md$dataset == ds, na.rm = TRUE)
-    ty <- unique(md$`Data.type`[md$dataset == ds])
-    ty <- ty[!is.na(ty)]
-    units <- list_units(ds)
-    paste0(n, " samples",
-           if (length(ty)) paste0(" · ", paste(ty, collapse = "/")) else "",
-           " · ", if (length(units)) paste(units, collapse = ", ") else "no matrix")
+    md   <- shared_meta()
+    rows <- md$dataset == ds
+    n    <- sum(rows, na.rm = TRUE)
+
+    # Whatever of these the dataset actually fills in. Species and tissue say
+    # more about whether a tab will make sense than the sample count does.
+    facet <- function(col) {
+      if (!col %in% names(md)) return(character(0))
+      v <- unique(as.character(md[[col]][rows]))
+      v <- v[!is.na(v) & v != "NA" & nzchar(v)]
+      if (length(v) > 3) c(v[1:3], "\u2026") else v
+    }
+    bits <- c(
+      paste(n, "samples"),
+      if (length(facet("Data.type"))) paste(facet("Data.type"), collapse = "/"),
+      if (length(facet("Species")))   paste(facet("Species"), collapse = "/"),
+      if (length(facet("Tissue")))    paste(facet("Tissue"), collapse = "/"),
+      { u <- list_units(ds); if (length(u)) paste(u, collapse = ", ") else "no matrix" }
+    )
+    paste(bits, collapse = " \u00b7 ")
   })
 
   # Handed to the modules so a tab can send the user elsewhere without knowing

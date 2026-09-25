@@ -19,11 +19,13 @@ os_panel <- function(..., title = NULL, class = NULL) {
 
 # The three columns every analysis tab is laid out in. The middle one is the
 # analysis; lint_layout.R checks that what the registry declares ends up here.
-os_layout <- function(left = NULL, center = NULL, right = NULL) {
+os_layout <- function(left = NULL, center = NULL, right = NULL,
+                      widths = c(3, 6, 3)) {
+  stopifnot(length(widths) == 3, sum(widths) == 12)
   fluidRow(
-    column(3, class = "os-left",   left),
-    column(6, class = "os-center", center),
-    column(3, class = "os-right",  right)
+    column(widths[1], class = "os-left",   left),
+    column(widths[2], class = "os-center", center),
+    column(widths[3], class = "os-right",  right)
   )
 }
 

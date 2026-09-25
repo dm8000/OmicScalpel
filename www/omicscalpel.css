@@ -169,12 +169,21 @@ label, .control-label {
 .selectize-input { padding: 5px 8px; }
 .selectize-dropdown { border-color: var(--os-border); }
 .selectize-dropdown .active { background: var(--os-accent-dim); color: #fff; }
-.selectize-input > .item {
-  background: var(--os-surface);
-  border: 1px solid var(--os-border-2);
-  color: var(--os-text);
+/* the chips for a multi-select were grey on grey and barely readable */
+.selectize-input > .item,
+.selectize-control.multi .selectize-input > div {
+  background: var(--os-surface-2) !important;
+  border: 1px solid var(--os-border-2) !important;
+  color: #f0f0f0 !important;
   border-radius: var(--os-radius);
+  padding: 1px 7px;
 }
+.selectize-control.multi .selectize-input > div.active {
+  background: var(--os-accent-dim) !important;
+  color: #fff !important;
+  border-color: var(--os-accent) !important;
+}
+.selectize-input, .selectize-input input { color: var(--os-text) !important; }
 .selectize-control.multi .selectize-input > div { background: var(--os-surface); }
 
 /* shinyWidgets pickerInput */
@@ -238,14 +247,24 @@ table.dataTable thead th {
   letter-spacing: .05em;
   text-transform: uppercase;
 }
-table.dataTable tbody td { border-top: 1px solid var(--os-border); }
-table.dataTable tbody tr { background: transparent; }
-table.dataTable tbody tr.odd { background: rgba(255, 255, 255, .02); }
+table.dataTable tbody td {
+  border-top: 1px solid var(--os-border);
+  color: var(--os-text) !important;
+}
+table.dataTable tbody tr { background: transparent !important; }
+table.dataTable tbody tr.odd { background: rgba(255, 255, 255, .025) !important; }
+table.dataTable tbody tr:hover td { background: rgba(217, 142, 58, .07) !important; }
+
+/* DT paints selection with its own pale blue, inline and with high
+   specificity, which on a dark page reads as a washed-out block with
+   unreadable text. */
 table.dataTable tbody tr.selected,
-table.dataTable tbody tr.selected td {
-  background: var(--os-accent-dim);
-  color: #fff;
-  box-shadow: none;
+table.dataTable tbody tr.selected td,
+table.dataTable tbody > tr.selected > * {
+  background-color: var(--os-accent-dim) !important;
+  background: var(--os-accent-dim) !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }
 .dataTables_wrapper .dataTables_filter input,
 .dataTables_wrapper .dataTables_length select {
@@ -301,3 +320,29 @@ table.dataTable tbody tr.selected td {
 .box-title { font-size: 11px; font-weight: 600; letter-spacing: .08em;
              text-transform: uppercase; color: var(--os-muted); margin: 0; }
 .box-body { padding: 10px; }
+
+/* -------------------------------------------------- selected-dataset box -- */
+
+.os-readonly {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--os-border);
+  font-size: 12px;
+}
+.os-readonly-label {
+  color: var(--os-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-size: 11px;
+  font-weight: 600;
+}
+.os-readonly-value { color: var(--os-text); text-align: right; }
+
+/* the editor holds one field per column; keep it scrollable rather than
+   letting it push the distributions off the bottom of the page. Scoped to the
+   editor: applied to every right-hand panel it also made the plots scroll. */
+.os-panel.os-scroll > .os-panel-body { max-height: 46vh; overflow-y: auto; }
+.os-right .form-group { margin-bottom: 6px; }
+.os-right .control-label { font-size: 10px; }

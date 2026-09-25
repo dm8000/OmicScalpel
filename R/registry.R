@@ -15,9 +15,9 @@ MODULES <- list(
        title = "Dataset summary",   icon = "table",
        ui = "dataSummaryUI",        server = "dataSummaryServer",
        pkgs = c("datamods", "dplyr", "DT", "forcats", "ggplot2", "openxlsx", "plotly", "RColorBrewer"),
-       layout = list(left   = c("Selection"),
+       layout = list(left   = c("Selection", "Sex Distribution", "Age Distribution"),
                      center = c("Dataset Summary"),
-                     right  = c("Sex Distribution", "Age Distribution"))),
+                     right  = c("Selected dataset", "Dataset distributions"))),
 
   list(id = "compare_genes",        scope = "one",  group = "Explore",
        title = "Compare genes",     icon = "chart-bar",
