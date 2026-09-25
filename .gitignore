@@ -21,3 +21,4 @@ config/config.txt
 
 # Local run artifacts (backups/logs when config.txt points here)
 .local/
+Rplots.pdf

@@ -42,6 +42,7 @@ if (length(MODULE_PKG_MISSING)) {
 
 source("R/ui_helpers.R")
 source("R/cutoff_finder.R")
+source("R/cutoff_plots.R")
 source("R/data_io.R")
 
 # One look for every figure, set once rather than asked for per plot.

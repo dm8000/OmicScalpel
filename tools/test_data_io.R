@@ -29,8 +29,14 @@ chk <- function(cond, what, ...) if (isTRUE(cond)) ok(what) else no(what, ...)
 
 # --- metadata ---------------------------------------------------------------
 m <- load_metadata()
-chk(nrow(m) == 31 && ncol(m) == 192, "load_metadata shape",
+# An exact column count is a tripwire for a fixture rebuilt against a different
+# schema; it moves whenever the fixture legitimately gains a column, and the
+# tab that needed the column is what says whether that was legitimate.
+chk(nrow(m) == 31 && ncol(m) == 197, "load_metadata shape",
     nrow(m), "x", ncol(m))
+chk(all(c("DEMO.Marker", "DEMO.OS.time", "DEMO.OS.event", "DEMO.Responder")
+        %in% names(m)),
+    "the fixture carries survival columns for the cutoff tabs")
 chk(setequal(unique(m$dataset), c("DEMO_RNAseq", "DEMO_Array")), "both datasets present",
     paste(unique(m$dataset), collapse = ", "))
 

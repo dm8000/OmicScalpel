@@ -86,6 +86,18 @@ summ_out <- do.call(rbind, lapply(names(real), function(k) {
 }))
 rownames(summ_out) <- NULL
 
+# Survival, so the cutoff-finder tests have something to find without the real
+# hub. A marker column with a cutpoint planted at 6, the same one
+# tools/make-survival-demo.R uses, and a responder flag that follows it.
+set.seed(4242)
+DEMO_CUT <- 6
+marker   <- round(runif(nrow(meta_out), 0, 10), 3)
+hazard   <- ifelse(marker > DEMO_CUT, 3, 1)
+meta_out$DEMO.Marker    <- marker
+meta_out$DEMO.OS.time   <- round(pmax(rexp(nrow(meta_out), hazard / 40), 0.1), 1)
+meta_out$DEMO.OS.event  <- rbinom(nrow(meta_out), 1, 0.75)
+meta_out$DEMO.Responder <- ifelse(marker > DEMO_CUT, "responder", "non-responder")
+
 dir.create(out, showWarnings = FALSE, recursive = TRUE)
 write_xlsx(meta_out, file.path(out, "Metadata.xlsx"))
 write_xlsx(summ_out, file.path(out, "Datasets_summary.xlsx"))

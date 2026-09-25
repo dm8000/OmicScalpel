@@ -51,6 +51,14 @@ MODULES <- list(
                      center = c("Forest Plot"),
                      right  = c("Analysis Summary", "Selected Metadata"))),
 
+  list(id = "cutoff_finder",        scope = "one",  group = "Explore",
+       title = "Cutoff finder",     icon = "scissors",
+       ui = "cutoffFinderUI",       server = "cutoffFinderServer",
+       pkgs = c("flexmix", "ggplot2", "survival"),
+       layout = list(left   = c("Variable", "Method"),
+                     center = c("Cutoff", "Outcome"),
+                     right  = c("Result", "Save"))),
+
   list(id = "export_matrix",        scope = "one",  group = "Export",
        title = "Export matrix",     icon = "file-export",
        ui = "exportMatrixUI",       server = "exportMatrixServer",
@@ -74,7 +82,7 @@ MODULES <- list(
                      right  = character(0))),
 
   list(id = "cutoff_maker",         scope = "one",  group = "Manage",
-       title = "Cutoffs",           icon = "sliders",
+       title = "Manual cutoffs",    icon = "sliders",
        ui = "cutoffMakerUI",        server = "cutoffMakerServer",
        pkgs = c("dplyr", "ggplot2", "plotly", "rhandsontable", "shinyWidgets"),
        layout = list(left   = c("Cutoffs"),

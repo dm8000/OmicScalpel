@@ -18,6 +18,7 @@ follows it.
 | Compare samples | The transpose: **conditions on the x axis, one panel per gene** — for asking how one gene differs between groups. Same plot controls, plus groups that can be hidden as well as reordered. |
 | Correlation | Gene expression against a continuous variable of the dataset, with the same plot controls. |
 | Meta-analysis | Forest plot of one biomolecule across several datasets at once, from two groups of samples you define by condition. |
+| Cutoff finder | Let the data choose the cutpoint on a metadata column or a gene's expression: the split with the strongest log-rank separation in survival, the best 2x2 or ROC corner for a binary outcome, or the crossing of a two-component mixture. Shows the effect across every candidate cutpoint, and a permutation-corrected p beside the optimistic one. Distilled from Cutoff Finder (Budczies et al., PLoS ONE 2012;7:e51862). |
 
 **Export**
 
@@ -31,7 +32,7 @@ follows it.
 |---|---|
 | Upload dataset | Add a new dataset: its expression files, its row in the dataset summary, and the metadata of its samples. |
 | Edit metadata | Edit, create or upload sample metadata for a dataset, column by column. |
-| Cutoffs | Define numeric cutoffs on a dataset's continuous columns and see the distribution they split. |
+| Manual cutoffs | Define numeric cutoffs on a dataset's continuous columns by hand and see the distribution they split. The Cutoff finder tab is the other direction: there the data picks the cutpoint. |
 
 The **Re-read metadata** button in the sidebar is only needed when the
 spreadsheet was changed outside the app -- saving from a tab already refreshes

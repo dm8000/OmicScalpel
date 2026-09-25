@@ -42,18 +42,24 @@ for (f in list.files(fix, pattern = "\\.txt$", recursive = TRUE, full.names = TR
 }
 pile <- unique(pile[!is.na(pile)])
 
-leak <- intersect(pile, unique(na.omit(real_meta$dataset)))
+# The spreadsheet writes missing as the literal "NA", so it turns up as a
+# value in every column on both sides. It is not an identifier, and comparing
+# it as one made this check cry wolf the moment a real row had a blank id.
+pile <- setdiff(pile, c("NA", "", "N/A"))
+ident <- function(v) setdiff(unique(as.character(v[!is.na(v)])), c("NA", "", "N/A"))
+
+leak <- intersect(pile, ident(real_meta$dataset))
 if (length(leak)) fail("real dataset name in fixture: ", paste(leak, collapse = ", "))
 
-leak <- intersect(pile, unique(na.omit(real_meta$SampleID)))
+leak <- intersect(pile, ident(real_meta$SampleID))
 if (length(leak)) fail(length(leak), " real SampleID(s) in fixture, e.g. ", leak[1])
 
-leak <- intersect(pile, unique(na.omit(as.character(real_meta$TsengID))))
+leak <- intersect(pile, ident(real_meta$TsengID))
 if (length(leak)) fail(length(leak), " real TsengID(s) in fixture, e.g. ", leak[1])
 
 for (col in c("Author", "publication")) {
   if (col %in% names(real_meta)) {
-    leak <- intersect(pile, unique(na.omit(as.character(real_meta[[col]]))))
+    leak <- intersect(pile, ident(real_meta[[col]]))
     if (length(leak)) fail("real ", col, " value in fixture: ", leak[1])
   }
 }
