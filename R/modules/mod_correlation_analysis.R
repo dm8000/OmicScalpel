@@ -120,7 +120,7 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
     output$custom_palette_ui <- renderUI({
       req(input$visible_conditions)
       n <- length(input$visible_conditions)
-      base <- brewer.pal(min(n,12), "Set3")
+      base <- os_palette(n)
       if (n > length(base)) base <- colorRampPalette(base)(n)
       lapply(seq_along(input$visible_conditions), function(i) {
         colourInput(session$ns(paste0("custom_color_", i)),

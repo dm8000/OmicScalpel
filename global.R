@@ -43,6 +43,9 @@ if (length(MODULE_PKG_MISSING)) {
 source("R/ui_helpers.R")
 source("R/data_io.R")
 
+# One look for every figure, set once rather than asked for per plot.
+if (requireNamespace("ggplot2", quietly = TRUE)) os_set_plot_defaults()
+
 # A module that fails to source must not take the other eight with it. One
 # broken file used to make every later module in a conversion chain fail on
 # someone else's syntax error, which is a very confusing way to be told about

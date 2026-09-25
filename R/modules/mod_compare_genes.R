@@ -167,7 +167,7 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL) {
     output$colorpicker_ui <- renderUI({
       req(input$genes)
       n <- length(input$genes)
-      default_cols <- brewer.pal(min(max(n,3),12),"Set3")
+      default_cols <- os_palette(n)
       if (n > length(default_cols))
         default_cols <- colorRampPalette(default_cols)(n)
       
@@ -184,7 +184,7 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL) {
       cols <- sapply(seq_along(input$genes), function(i) {
         inpt <- input[[session$ns(paste0("color_", i))]]
         if (is.null(inpt)) {
-          d <- brewer.pal(min(max(length(input$genes),3),12),"Set3")
+          d <- os_palette(max(length(input$genes), 1))
           if (i <= length(d)) d[i] else "#CCCCCC"
         } else inpt
       })

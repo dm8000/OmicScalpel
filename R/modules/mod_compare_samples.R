@@ -154,7 +154,7 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
     output$colorpicker_ui <- renderUI({
       req(input$visible_conditions)
       n <- length(input$visible_conditions)
-      default_cols <- brewer.pal(min(max(n,3),12),"Set3")
+      default_cols <- os_palette(n)
       if(n > length(default_cols)) default_cols <- colorRampPalette(default_cols)(n)
       
       tagList(lapply(seq_along(input$visible_conditions), function(i) {
@@ -170,7 +170,7 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
       cols <- sapply(seq_along(input$visible_conditions), function(i) {
         inpt <- input[[paste0("color_",i)]]
         if (is.null(inpt)) {
-          d <- brewer.pal(min(max(length(input$visible_conditions),3),12),"Set3")
+          d <- os_palette(max(length(input$visible_conditions), 1))
           if (i <= length(d)) d[i] else "#CCCCCC"
         } else inpt
       })

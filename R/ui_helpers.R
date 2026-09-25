@@ -138,3 +138,49 @@ os_theme <- function(base_size = 13) {
       plot.margin        = ggplot2::margin(10, 12, 8, 8)
     )
 }
+
+# Geom defaults, set once in global.R. ggplot's own defaults are tuned for a
+# grey theme: black outlines, 0.5pt lines, size-1.5 points. On white with a
+# thin frame they read as heavy and the fills fight the palette.
+os_set_plot_defaults <- function() {
+  ggplot2::theme_set(os_theme())
+
+  g <- ggplot2::update_geom_defaults
+  g("boxplot",   list(colour = OS_PLOT$ink, linewidth = .4, outlier.size = 1,
+                      outlier.colour = OS_PLOT$muted, outlier.alpha = .6))
+  # geom_jitter draws with GeomPoint, so these are one setting, not two: the
+  # first draft set point to the accent and jitter to grey, and jitter simply
+  # overwrote it. Neutral and small serves both uses here -- a scatter, and
+  # points strewn over a boxplot -- and a module that wants the accent asks
+  # for it.
+  g("point",     list(colour = "#4a4a4a", size = 1.5, alpha = .75))
+  g("line",      list(colour = OS_PLOT$accent, linewidth = .6))
+  g("smooth",    list(colour = OS_PLOT$accent2, linewidth = .7, fill = OS_PLOT$accent2,
+                      alpha = .15))
+  g("bar",       list(fill = OS_PLOT$accent, colour = NA))
+  g("col",       list(fill = OS_PLOT$accent, colour = NA))
+  g("histogram", list(fill = OS_PLOT$accent, colour = "white", linewidth = .25))
+  g("vline",     list(colour = OS_PLOT$muted, linewidth = .4, linetype = "dashed"))
+  g("hline",     list(colour = OS_PLOT$muted, linewidth = .4, linetype = "dashed"))
+  g("text",      list(colour = OS_PLOT$ink, size = 3.2))
+  invisible(TRUE)
+}
+
+# The same look for the plotly figures, which do not read the ggplot theme.
+os_plotly <- function(p, title = NULL) {
+  p |>
+    plotly::layout(
+      font       = list(family = "Helvetica, Arial, sans-serif",
+                        size = 12, color = OS_PLOT$ink),
+      title      = if (is.null(title)) NULL else
+                     list(text = title, font = list(size = 14, color = OS_PLOT$ink)),
+      paper_bgcolor = "white",
+      plot_bgcolor  = "white",
+      xaxis = list(gridcolor = OS_PLOT$grid, zerolinecolor = OS_PLOT$frame,
+                   linecolor = OS_PLOT$frame, tickfont = list(color = OS_PLOT$muted)),
+      yaxis = list(gridcolor = OS_PLOT$grid, zerolinecolor = OS_PLOT$frame,
+                   linecolor = OS_PLOT$frame, tickfont = list(color = OS_PLOT$muted)),
+      legend = list(font = list(color = OS_PLOT$ink, size = 11))
+    ) |>
+    plotly::config(displayModeBar = FALSE)
+}

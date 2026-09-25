@@ -156,19 +156,23 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
     
     output$sex_pie <- renderPlotly({
       df <- filtered_meta() %>% count(Sex, name = "Count") %>% mutate(Percentage = Count/sum(Count)*100)
-      plot_ly(df, labels = ~Sex, values = ~Count, type = "pie",
-              textinfo = "label+percent+value", hoverinfo = "label+percent+value",
-              marker = list(colors = brewer.pal(8, "Set2"), line = list(color = "#FFF", width = 1))) %>%
-        layout(showlegend = FALSE, title = list(text = "Sex Distribution", y = 0.98), margin = list(t = 40))
+      os_plotly(
+        plot_ly(df, labels = ~Sex, values = ~Count, type = "pie",
+                textinfo = "label+percent+value", hoverinfo = "label+percent+value",
+                marker = list(colors = os_palette(nrow(df)),
+                              line = list(color = "#FFF", width = 1))) %>%
+          layout(showlegend = FALSE, margin = list(t = 40)),
+        title = "Sex Distribution"
+      )
     })
     
     output$age_hist <- renderPlotly({
       p <- ggplot(filtered_meta(), aes(x = Age)) +
-        geom_histogram(fill = "#66C2A5", color = "white", bins = 30) +
+        geom_histogram(bins = 30) +
         labs(x = "Age", y = "Count") +
         os_theme() +
         theme(plot.title = element_text(face = "bold"))
-      ggplotly(p) %>% config(displayModeBar = FALSE)
+      os_plotly(ggplotly(p))
     })
     
     output$summary_table <- renderDT({
@@ -260,11 +264,14 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
       v <- real_values(md[[input$cat_var]])
       req(length(v) > 0)
       df <- as.data.frame(table(value = v), stringsAsFactors = FALSE)
-      plot_ly(df, labels = ~value, values = ~Freq, type = "pie",
-              textinfo = "label+percent", hoverinfo = "label+percent+value") %>%
-        layout(title = list(text = input$cat_var), showlegend = FALSE,
-               margin = list(t = 30, b = 10, l = 10, r = 10)) %>%
-        config(displayModeBar = FALSE)
+      os_plotly(
+        plot_ly(df, labels = ~value, values = ~Freq, type = "pie",
+                textinfo = "label+percent", hoverinfo = "label+percent+value",
+                marker = list(colors = os_palette(nrow(df)),
+                              line = list(color = "#FFF", width = 1))) %>%
+          layout(showlegend = FALSE, margin = list(t = 34, b = 10, l = 10, r = 10)),
+        title = input$cat_var
+      )
     })
 
     output$ds_hist <- renderPlotly({
@@ -272,12 +279,14 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
       v <- suppressWarnings(as.numeric(real_values(md[[input$num_var]])))
       v <- v[!is.na(v)]
       req(length(v) > 0)
-      plot_ly(x = v, type = "histogram", nbinsx = 20,
-              marker = list(color = "#d98e3a")) %>%
-        layout(title = list(text = input$num_var),
-               xaxis = list(title = input$num_var), yaxis = list(title = "Count"),
-               margin = list(t = 30, b = 40, l = 40, r = 10)) %>%
-        config(displayModeBar = FALSE)
+      os_plotly(
+        plot_ly(x = v, type = "histogram", nbinsx = 20,
+                marker = list(color = OS_PLOT$accent,
+                              line = list(color = "white", width = .5))) %>%
+          layout(xaxis = list(title = input$num_var), yaxis = list(title = "Count"),
+                 margin = list(t = 34, b = 40, l = 40, r = 10)),
+        title = input$num_var
+      )
     })
 
     # The selected row's fields, as labelled inputs. Derived columns are shown
