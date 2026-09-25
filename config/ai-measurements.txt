@@ -1,6 +1,16 @@
 # Value in the metadata | family | what it is
-RNAseq            | RNAseq      | RNA sequencing of gene expression
-Array             | Microarray  | microarray of gene expression
-Microarray        | Microarray  | microarray of gene expression
-Signal.lipidomics | Lipidomics  | lipidomics: lipid species, not genes
-Proteomics        | Proteomics  | proteomics: proteins, not transcripts
+#
+# RNA sequencing, microarray and proteomics are one family on purpose. A
+# question about whether a gene is expressed is answered by any of them -- the
+# transcript or the protein -- and naming no platform should not pick one.
+# Read as RNAseq at 80% confidence, "is this gene more expressed" threw away a
+# 770-sample microarray cohort that had the gene and the variable.
+#
+# Lipidomics is its own family because lipid species are not genes: those
+# datasets carry 110 features and no symbol a gene question could match.
+
+RNAseq            | gene or protein expression | RNA sequencing of gene expression
+Array             | gene or protein expression | microarray of gene expression
+Microarray        | gene or protein expression | microarray of gene expression
+Proteomics        | gene or protein expression | proteomics: the protein a gene makes
+Signal.lipidomics | lipidomics                 | lipidomics: lipid species, not genes

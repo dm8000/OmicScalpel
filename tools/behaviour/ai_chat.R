@@ -53,7 +53,7 @@ Sys.setenv(TYPESAFE_API_KEY = "stub")
 
 found <- list(answerable = noul(0.96), intent = choice("association_continuous"),
               species = choice("any"), tissue = choice("any"),
-              measurement = choice("RNAseq"), variable = choice("DEMO.Marker"),
+              measurement = choice("gene or protein expression"), variable = choice("DEMO.Marker"),
               gene = choice(GENE))
 
 # --- a question that can be answered -----------------------------------------
@@ -82,17 +82,16 @@ testServer(aiChatServer,
 
 chk(length(state) == 1L, "the question becomes one exchange", length(state))
 p <- state[[1]]$plan
-chk(isTRUE(p$ok) && identical(p$tab, "correlation_analysis"),
-    "carrying a plan for the tab that can answer it", p$tab, " ", p$headline)
+chk(isTRUE(p$ok) && p$tab %in% names(AI_TOOLS),
+    "carrying a plan for a tab that can answer it", p$tab, " ", p$headline)
 chk(length(p$trace) >= 4, "and the path it took to get there", length(p$trace))
 chk(!is.null(p$cost) && p$cost > 0, "with what the question cost", p$cost)
 chk(identical(calls$n, 1L), "one request for the whole question, not one per question asked",
     calls$n)
 
-chk(identical(opened$tab, "correlation_analysis") &&
-    identical(opened$dataset, p$dataset),
-    "the button opens that tab on that dataset",
-    opened$tab, "/", opened$dataset)
+chk(identical(opened$tab, p$tab) && identical(opened$dataset, p$dataset),
+    "the button opens the tab the plan names, on the dataset it names",
+    opened$tab %||% "(none)", "/", opened$dataset %||% "(none)")
 chk(identical(opened$published, p),
     "and publishes the same plan the analysis tabs listen for")
 

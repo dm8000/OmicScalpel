@@ -43,7 +43,7 @@ GENES <- data.frame(symbol = GENE, how = "exact", stringsAsFactors = FALSE)
 plan_for <- function(...) {
   base <- list(answerable = noul(0.95), intent = choice("association_continuous"),
                species = choice("any"), tissue = choice("any"),
-               measurement = choice("RNAseq"),
+               measurement = choice("gene or protein expression"),
                variable = choice("DEMO.Marker"), gene = choice(GENE))
   ai_decide(utils::modifyList(base, list(...)), CATL, GENES, index = INDEX)
 }
@@ -74,10 +74,15 @@ drive <- function(server, plan, extra = list()) {
 
 # --- correlation --------------------------------------------------------------
 
-p <- plan_for()
-chk(identical(p$tab, "correlation_analysis"),
-    "the planner sends a continuous variable in one dataset to the correlation",
-    p$tab, " / ", p$headline)
+# Built by hand, not routed: which tool a question reaches is settled in
+# tools/behaviour/ai_plan.R against a planted catalog. What is under test here
+# is that the controls a plan carries are the ones the tab reads.
+p <- ai_plan_out("correlation_analysis", DS, DS,
+                 list(genes = GENE, numeric_columns = "DEMO.Marker"),
+                 list(), "one gene against one variable")
+chk(all(AI_TOOLS$correlation_analysis$needs %in% names(p$controls)),
+    "the plan fills every control the correlation tab declares it needs",
+    paste(setdiff(AI_TOOLS$correlation_analysis$needs, names(p$controls)), collapse = ", "))
 
 # What a browser sends with the page and testServer does not: every control
 # with a UI default that the plot reads. Supplying them here is simulating the
@@ -96,19 +101,11 @@ chk(!is.character(r$plot) && !is.null(r$plot),
     "and the plot renders from the plan alone, with no button pressed",
     if (is.character(r$plot)) r$plot else "nothing rendered")
 
-# The same controls, nothing else: proof the plan's `needs` are sufficient and
-# not merely necessary.
-spec <- AI_TOOLS[["correlation_analysis"]]
-chk(all(spec$needs %in% names(p$controls)),
-    "the plan fills every control that tab declares it needs",
-    paste(setdiff(spec$needs, names(p$controls)), collapse = ", "))
-
 # --- compare samples ----------------------------------------------------------
 
-p2 <- plan_for(intent = choice("comparison_groups"),
-               variable = choice("DEMO.Responder"))
-chk(identical(p2$tab, "compare_samples"), "and groups in one dataset to compare samples",
-    p2$tab)
+p2 <- ai_plan_out("compare_samples", DS, DS,
+                  list(genes = GENE, conditions = "DEMO.Responder"),
+                  list(), "one gene between groups")
 CMP_PAGE <- list(log2_transform = FALSE, show_wilcox = FALSE, facet_plot = FALSE,
                  plot_title = "t", x_label = "x", y_label = "y",
                  plot_width = 800, plot_height = 600,

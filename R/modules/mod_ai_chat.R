@@ -110,6 +110,12 @@ aiChatServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
           tags$div(class = "os-chat-a",
             tags$p(class = if (isTRUE(p$ok)) "os-chat-head" else "os-chat-head text-warning",
                    p$headline),
+            if (!is.null(p$note))
+              tags$p(class = "text-muted", style = "font-size: 12px; margin-top: -6px;",
+                     p$note),
+            if (isTRUE(p$demo_only))
+              tags$p(class = "text-warning", style = "font-size: 12px;",
+                     "This answer comes from data that was invented to exercise the app."),
             if (isTRUE(p$ok) && !is.na(AI_TOOLS[[p$tab]]$title %||% NA))
               actionButton(ns(paste0("open_", e$n)),
                            paste0("Open in ", AI_TOOLS[[p$tab]]$title, "  →"),

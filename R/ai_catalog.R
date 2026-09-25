@@ -117,6 +117,32 @@ ai_describe_column <- function(name, kind, levels, docs) {
          if (length(levels)) paste0(", one of: ", paste(levels, collapse = ", ")) else "")
 }
 
+# Datasets holding invented data, by name. A search leaves them out: an answer
+# drawn from Example3_survival's planted cutpoint looks exactly like one drawn
+# from a real cohort.
+ai_demo_datasets <- function() {
+  path <- file.path(os_root(), "config", "ai-demo-datasets.txt")
+  if (!file.exists(path)) return(character(0))
+  v <- trimws(readLines(path, warn = FALSE))
+  v[nzchar(v) & !startsWith(v, "#")]
+}
+
+# Does this dataset measure genes at all?
+#
+# Five of the eighteen are lipidomics: 110 lipid species, no gene symbols.
+# Reporting "IL6 is in 1 of 3 datasets" about them implies they were searched
+# for IL6 and did not have it, when they measure nothing of the kind.
+#
+# Proteomics counts: a question about whether a gene is expressed is answered
+# by the protein as well as the transcript, and those matrices are keyed by
+# gene symbol like the rest.
+ai_measures_genes <- function(data_type, symbols = NULL) {
+  lipid <- any(grepl("lipid", data_type, ignore.case = TRUE))
+  if (lipid) return(FALSE)
+  if (!length(data_type) && !is.null(symbols)) return(length(symbols) > 500)
+  TRUE
+}
+
 # --- the catalog -------------------------------------------------------------
 
 # One entry per dataset. Cached against metadata_version(), the same counter
@@ -130,6 +156,8 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
   if (is.null(md)) md <- load_metadata()
   docs <- ai_column_docs()
   spec <- ai_facet_spec()
+  demo <- ai_demo_datasets()
+  index <- tryCatch(ai_gene_index(), error = function(e) NULL)
   # in.vivo.or.in.vitro and Type.of.samples exist only in the summary sheet, so
   # a catalog built from the per-sample metadata alone cannot tell tissue from
   # cultured cells. Missing or unreadable, the facets that need it are simply
@@ -187,9 +215,32 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
       vars[[cn]] <- entry
     }
 
+    # Columns with any value at all, as opposed to columns that vary. Civelek
+    # records Sex for all 770 samples and every one of them is Male: saying it
+    # "does not have Sex" is wrong, and offering it for a sex comparison is
+    # worse.
+    recorded <- names(rows)[vapply(names(rows), function(cn) length(ai_real(rows[[cn]])) > 0,
+                                   logical(1))]
+
+    # Follow-up time and its censoring flag, found with the values in hand. The
+    # flag is 0/1, which ai_kind() calls neither numeric (two distinct values)
+    # nor categorical (they parse as numbers), so it never reaches `variables`
+    # -- and a detector looking there concluded the dataset had no survival
+    # data at all.
+    surv <- NULL
+    for (cn in recorded) {
+      ev <- os_survival_event_for(cn, rows)
+      if (!is.null(ev)) { surv <- list(time = cn, event = ev); break }
+    }
+
     list(dataset   = d,
          n         = nrow(rows),
          facets    = facets,
+         recorded  = recorded,
+         survival  = surv,
+         demo      = d %in% demo,
+         measures_genes = ai_measures_genes(facets$measurement,
+                                            if (!is.null(index)) index$datasets[[d]] else NULL),
          # kept beside facets because ai_state() and the tabs read them by name
          species   = facets$species %||% facet("Species"),
          tissue    = facets$tissue %||% facet("Tissue"),

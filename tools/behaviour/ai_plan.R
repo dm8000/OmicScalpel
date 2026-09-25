@@ -22,10 +22,16 @@ num <- function(col, lo, hi, n = 50) list(column = col, kind = "numeric", n = n,
                                           range = c(lo, hi), about = col)
 cat_ <- function(col, levels, n = 50) list(column = col, kind = "categorical", n = n,
                                            levels = levels, more = 0L, about = col)
-ds <- function(name, n, species, tissue, type, units, vars) {
+ds <- function(name, n, species, tissue, type, units, vars,
+               demo = FALSE, recorded = character(0)) {
+  nm <- vapply(vars, function(v) v$column, character(1))
   list(dataset = name, n = n, species = species, tissue = tissue,
        data_type = type, cell_type = "adipocytes", units = units,
-       variables = stats::setNames(vars, vapply(vars, function(v) v$column, character(1))))
+       demo = demo,
+       measures_genes = ai_measures_genes(type),
+       # columns with a value, varying or not
+       recorded = unique(c(nm, recorded)),
+       variables = stats::setNames(vars, nm))
 }
 
 CAT <- list(
@@ -42,15 +48,23 @@ CAT <- list(
   ds("MouseA", 20,  "Mmu", "BAT", "RNAseq", "TPM",
      list(cat_("Diet", c("chow", "HFD45")),
           num("DEMO.OS.time", 1, 90), cat_("DEMO.OS.event", c("0", "1")))),
+  # lipidomics with both sexes, like Bluher and McMaster: it survives every
+  # filter until the one that asks whether it measures genes at all
   ds("PlasmaA", 60, "HSA", "Plasma", "Signal.lipidomics", "TMM",
-     list(num("BMI", 19, 41)))
+     list(num("BMI", 19, 41), cat_("Sex", c("Female", "Male")))),
+  # records Sex, and every sample is Male: nothing to compare
+  ds("HumanE", 500, "HSA", "Adipose", "RNAseq", "TMM",
+     list(num("BMI", 20, 50)), recorded = "Sex"),
+  # invented data, with the gene nothing else has
+  ds("DemoZ", 100, "HSA", "Adipose", "RNAseq", "TPM",
+     list(cat_("Sex", c("female", "male"))), demo = TRUE)
 )
 names(CAT) <- vapply(CAT, function(d) d$dataset, character(1))
 
 INDEX <- list(built = Sys.time(), datasets = list(
   HumanA = c("LEP", "UCP1", "ADIPOQ"), HumanB = c("LEP", "UCP1"),
   HumanC = c("LEP"), HumanD = c("LEP"), MouseA = c("Ucp1", "LEP"),
-  PlasmaA = c("LIPID1")))
+  PlasmaA = c("LIPID1"), HumanE = c("LEP"), DemoZ = c("LEP", "DEMOONLY1")))
 
 GENES <- data.frame(symbol = c("LEP", "LEPR"), how = c("synonym", "prefix"),
                     stringsAsFactors = FALSE)
@@ -80,7 +94,7 @@ p <- plan_of()
 chk(isTRUE(p$ok) && p$tab == "meta_analysis",
     "a continuous variable in several datasets goes to the meta-analysis",
     p$tab, " ", p$headline)
-chk(setequal(p$datasets, c("HumanA", "HumanB", "HumanC", "HumanD")),
+chk(setequal(p$datasets, c("HumanA", "HumanB", "HumanC", "HumanD", "HumanE")),
     "and only the datasets that pass every filter",
     paste(p$datasets, collapse = ", "))
 chk("HumanC" %in% p$datasets,
@@ -202,6 +216,45 @@ chk(any(grepl("Carried over", vapply(p11$trace, function(s) s$step, character(1)
 p12 <- ai_decide(utils::modifyList(vague, list(followup = choice("new"))),
                  CAT, GENES[0, ], index = INDEX, previous = p1)
 chk(isFALSE(p12$ok), "but a question announced as new inherits nothing")
+
+# --- what the collection is, said out loud ------------------------------------
+# Two questions about sex landed on the same dataset whatever the gene was.
+# That was not the router preferring it: it is the only one that records sex
+# varying and measures genes. The trace has to say each of those things, and
+# say them apart.
+
+sx <- plan_of(intent = choice("comparison_groups"), variable = choice("Sex"),
+              species = choice("any"), tissue = choice("any"), gene = choice("LEP"))
+steps <- vapply(sx$trace, function(s) s$step, character(1))
+details <- vapply(sx$trace, function(s) s$detail, character(1))
+
+chk("Demonstration data" %in% steps, "invented data is set aside before anything else",
+    paste(steps, collapse = " > "))
+chk(!"DemoZ" %in% (sx$datasets %||% character(0)),
+    "and does not answer a real question")
+
+chk(any(grepl("record it without varying", details)),
+    "a dataset that records the variable without varying is counted apart",
+    paste(grep("varies in", details, value = TRUE), collapse = " | "))
+
+chk("Measures genes" %in% steps,
+    "lipidomics is ruled out as not measuring genes, not as missing the gene",
+    paste(steps, collapse = " > "))
+chk(any(grepl("lipid species", details)), "and the trace says so in words")
+
+chk(isTRUE(sx$ok) && length(sx$datasets) == 1 && !is.null(sx$note),
+    "when one dataset was the only option the answer says so",
+    sx$note %||% "(no note)")
+chk(grepl("only dataset", sx$note), "in the answer itself, not just the trace", sx$note)
+
+# --- invented data, when it is the only place the gene exists ------------------
+only <- plan_of(intent = choice("expression_level"), variable = choice("none"),
+                species = choice("any"), tissue = choice("any"),
+                gene = choice("DEMOONLY1"))
+chk(isTRUE(only$ok) && isTRUE(only$demo_only),
+    "a gene that exists only in invented data still answers", only$headline)
+chk(grepl("^Invented data only", only$headline),
+    "with the headline saying what it is", only$headline)
 
 # --- "is this expressed here?" ------------------------------------------------
 # The commonest question there is, and the one the intent list did not have.

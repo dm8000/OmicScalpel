@@ -259,6 +259,8 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   keep <- names(catalog)
   spec <- ai_facet_spec()
 
+
+
   # What the question wants left out, if anything: "facet:value", or none.
   excl <- if (is.null(answers$exclude)) "none" else jev_value(answers$exclude)
   excl_conf <- jev_confidence(answers$exclude)
@@ -298,6 +300,19 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
     keep <- f$keep; tr <- f$tr
   }
 
+  # Invented data goes through the same filters and is then set aside.
+  # Example3_survival is 150 made-up samples with a cutpoint planted in a gene,
+  # and an answer drawn from it is indistinguishable from one drawn from a real
+  # cohort. It is tried again, alone, only if nothing real can answer at all.
+  demo_held <- Filter(function(d) isTRUE(catalog[[d]]$demo), keep)
+  if (length(demo_held)) {
+    keep <- setdiff(keep, demo_held)
+    tr <- ai_trace(tr, "Demonstration data",
+                   sprintf("%d dataset%s of invented data set aside", length(demo_held),
+                           if (length(demo_held) == 1) "" else "s"),
+                   length(keep))
+  }
+
   # --- what a follow-up inherits
   followup <- if (is.null(answers$followup)) "new" else jev_value(answers$followup)
   split_by <- if (is.null(answers$split_by)) "none" else jev_value(answers$split_by)
@@ -322,17 +337,27 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   # distribution, and when the most likely reading leaves no data the next one
   # is the model's own opinion, not ours.
   attempt <- function(variable, keep, tr) {
+  n_before <- length(keep)
   var_kind <- NA_character_
   if (!identical(variable, "none")) {
     before <- length(keep)
+    # Recorded and varying are different things, and the difference is the
+    # answer to "why not Civelek?": it records Sex for all 770 samples and
+    # every one of them is Male, so there is nothing to compare.
+    flat <- Filter(function(d) variable %in% catalog[[d]]$recorded &&
+                               !variable %in% names(catalog[[d]]$variables), keep)
     keep <- keep[vapply(catalog[keep], function(d) variable %in% names(d$variables), logical(1))]
     kinds <- unique(vapply(catalog[keep], function(d) d$variables[[variable]]$kind,
                            character(1)))
     var_kind <- if (length(kinds)) kinds[1] else NA_character_
     tr <- ai_trace(tr, "Variable",
-                   sprintf("%s, %s, filled in %d of %d datasets", variable,
+                   sprintf("%s, %s: varies in %d of %d%s", variable,
                            ifelse(is.na(var_kind), "unknown type", var_kind),
-                           length(keep), before),
+                           length(keep), before,
+                           if (length(flat))
+                             sprintf("; %d more record it without varying (%s)",
+                                     length(flat), paste(utils::head(flat, 3), collapse = ", "))
+                           else ""),
                    length(keep))
   } else {
     tr <- ai_trace(tr, "Variable", "the question names none", length(keep))
@@ -358,6 +383,19 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
     return(ai_refuse(tr, "I could not tell which gene the question is about."))
   }
   if (!identical(gene, "none")) {
+    # Five of the eighteen are lipidomics: 110 lipid species and no gene
+    # symbols. "IL6 is in 1 of 3" implies the other two were looked in.
+    before <- length(keep)
+    no_genes <- Filter(function(d) isFALSE(catalog[[d]]$measures_genes), keep)
+    if (length(no_genes)) {
+      keep <- setdiff(keep, no_genes)
+      tr <- ai_trace(tr, "Measures genes",
+                     sprintf("%d of %d; %s measure%s lipid species, not transcripts",
+                             length(keep), before,
+                             paste(utils::head(no_genes, 3), collapse = ", "),
+                             if (length(no_genes) == 1) "s" else ""),
+                     length(keep))
+    }
     how <- genes$how[match(gene, genes$symbol)]
     if (is.null(index)) {
       # No index means the question cannot be told a gene is absent. Refusing
@@ -389,7 +427,24 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   }
 
 
-  ai_pick_tool(intent, variable, var_kind, gene, keep, catalog, split_by, tr, index)
+  plan <- ai_pick_tool(intent, variable, var_kind, gene, keep, catalog, split_by, tr, index)
+
+  # When one dataset is the only one that could have answered, say so in the
+  # answer rather than leaving it in the trace. Otherwise the same dataset
+  # comes back for every question of this shape and looks like a preference.
+  if (isTRUE(plan$ok) && length(keep) == 1L && n_before > 1L) {
+    reasons <- character(0)
+    if (!identical(variable, "none")) {
+      reasons <- c(reasons, sprintf("records %s varying", variable))
+    }
+    if (!identical(gene, "none")) reasons <- c(reasons, sprintf("measures %s", gene))
+    if (length(reasons)) {
+      plan$note <- sprintf(
+        "%s is the only dataset here that %s, so any question of this shape lands on it.",
+        keep, paste(reasons, collapse = " and "))
+    }
+  }
+  plan
   }
 
   plan <- attempt(variable, keep, tr)
@@ -398,6 +453,21 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   # ranked. "Obesity" is the case this exists for: Obesity.status is filled in
   # one dataset and that one measures no genes, while BMI -- the model's second
   # choice -- is in five.
+  # Nothing real could answer. Before reporting that the collection cannot, try
+  # the invented data on its own -- a question about DEMOMARK1 has an answer,
+  # and it is one that has to arrive labelled.
+  if (isFALSE(plan$ok) && identical(plan$kind, "none") && length(demo_held)) {
+    demo_plan <- attempt(variable, demo_held,
+                         ai_trace(tr, "Demonstration data",
+                                  "nothing real can answer this, so the invented datasets were tried",
+                                  length(demo_held)))
+    if (isTRUE(demo_plan$ok)) {
+      demo_plan$headline <- paste0("Invented data only. ", demo_plan$headline)
+      demo_plan$demo_only <- TRUE
+      return(demo_plan)
+    }
+  }
+
   if (isFALSE(plan$ok) && identical(plan$kind, "none") && !identical(variable, "none")) {
     for (alt in setdiff(jev_runners_up(answers$variable, 3L), c(variable, "none"))) {
       tr2 <- ai_trace(tr, "Second reading",
@@ -574,6 +644,10 @@ ai_plan_out <- function(tab, dataset, datasets, controls, trace, headline) {
 # A dataset can only go to the cutoff finder if it records both a time and an
 # event, and nothing guarantees they are named alike.
 ai_survival_columns <- function(entry) {
+  # The catalog worked this out with the values in front of it; guessing from
+  # the names of the columns that happened to vary missed the censoring flag,
+  # which is 0/1 and therefore in neither list.
+  if (!is.null(entry$survival)) return(entry$survival)
   nm <- names(entry$variables)
   time  <- grep("time", nm, ignore.case = TRUE, value = TRUE)
   event <- grep("event|status|death", nm, ignore.case = TRUE, value = TRUE)

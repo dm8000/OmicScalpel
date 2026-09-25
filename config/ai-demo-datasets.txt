@@ -1,0 +1,15 @@
+# Datasets that hold invented data.
+#
+# The question tab leaves these out of a search. They exist to exercise the app
+# -- Example3_survival is 150 made-up samples with a cutpoint planted in a gene
+# called DEMOMARK1 -- and an answer drawn from them looks exactly like an answer
+# drawn from a real cohort. The trace says when they were left out.
+#
+# They come back only when the gene asked about exists nowhere else, and then
+# the answer says so in as many words.
+#
+# One dataset name per line.
+
+Example_dataset
+Example2_dataset
+Example3_survival

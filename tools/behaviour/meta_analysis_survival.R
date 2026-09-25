@@ -42,6 +42,22 @@ fake$Trial.grade <- "high"
 chk(is.null(os_survival_event_for("Trial.time", fake)),
     "a partner that is not zero-or-one is rejected")
 
+# --- the catalog has to see it too -------------------------------------------
+# The censoring flag is 0/1, which ai_kind() calls neither numeric (two
+# distinct values) nor categorical (they parse as numbers), so it never reaches
+# the catalog's list of variables. A detector that looked there concluded the
+# dataset had no survival data, and a question about it was refused.
+ct <- ai_catalog(md)
+sv <- ct[[DS]]$survival
+chk(!is.null(sv) && identical(sv$time, "DEMO.OS.time") &&
+    identical(sv$event, "DEMO.OS.event"),
+    "the catalog finds the follow-up pair from the values, not the column list",
+    if (is.null(sv)) "(none)" else paste(sv$time, sv$event))
+chk(!"DEMO.OS.event" %in% names(ct[[DS]]$variables),
+    "-- and the flag really is absent from that list, which is why it must")
+chk(identical(ai_survival_columns(ct[[DS]]), sv),
+    "the planner reads the pair the catalog worked out")
+
 # --- the analysis takes the Cox path -----------------------------------------
 
 run <- function(condition) {
