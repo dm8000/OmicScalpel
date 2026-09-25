@@ -162,7 +162,7 @@ cutoffMakerServer <- function(id, ds, meta, go_to = NULL) {
         labs(title = paste("Distribution of", input$numeric_col),
              x = input$numeric_col,
              y = "Count") +
-        theme_minimal(base_size = 14) +
+        os_theme(base_size = 14) +
         theme(plot.title = element_text(face = "bold", size = 16),
               axis.title = element_text(face = "bold"))
       

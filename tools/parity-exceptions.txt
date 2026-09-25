@@ -16,3 +16,4 @@ compare_samples      reload_metadata    # idem
 
 compare_genes        gene_select        # the gene selector is a static input now: created by renderUI, updateSelectizeInput raced the UI that was to hold it and the list never arrived
 compare_samples      gene_select        # idem
+export_matrix        unit_ui            # the unit selector is a static input now: built by renderUI, updateSelectInput raced it and the menu stayed empty

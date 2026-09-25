@@ -179,12 +179,23 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
     })
     
     plot_data_reactive <- eventReactive(input$plot, {
-      req(ds(), input$genes, input$visible_conditions)
+      req(ds(), input$genes)
       sel_meta <- meta() %>% filter(dataset == ds())
-      combined <- apply(sel_meta[input$conditions],1,paste,collapse=".")
-      keep     <- combined %in% input$visible_conditions
-      sel_meta <- sel_meta[keep, ]
-      sel_meta$CombinedCondition <- factor(combined[keep], levels = input$visible_conditions)
+
+      # No condition chosen is a legitimate question -- "what do these genes
+      # look like across this dataset" -- so every sample falls into one group
+      # instead of the tab refusing to draw anything.
+      if (!length(input$conditions)) {
+        sel_meta$CombinedCondition <- factor(rep("All samples", nrow(sel_meta)))
+      } else {
+        combined <- apply(sel_meta[input$conditions], 1, paste, collapse = ".")
+        visible  <- if (length(input$visible_conditions)) input$visible_conditions
+                    else unique(combined)
+        keep     <- combined %in% visible
+        sel_meta <- sel_meta[keep, ]
+        sel_meta$CombinedCondition <- factor(combined[keep], levels = visible)
+      }
+      req(nrow(sel_meta) > 0)
       samp_ids <- sel_meta$SampleID
       
       tmm_data <- load_expression(ds(), unit_reactive())
@@ -284,7 +295,7 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
           ggtitle(gene) +
           scale_fill_manual(values = pal) +
           labs(x = input$x_label, y = y_lab_full) +
-          theme_minimal(base_size = input$axis_font_size) +
+          os_theme(base_size = input$axis_font_size) +
           theme(
             plot.title = element_text(hjust = 0.5, face = "bold", size = input$facet_font_size),
             axis.text.x = element_text(angle = 45, hjust = 1, size = input$group_font_size),
@@ -439,12 +450,23 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
     })
     
     observeEvent(input$wilcox_test, {
-      req(ds(), input$genes, input$visible_conditions)
+      req(ds(), input$genes)
       sel_meta <- meta() %>% filter(dataset == ds())
-      combined <- apply(sel_meta[input$conditions],1,paste,collapse=".")
-      keep     <- combined %in% input$visible_conditions
-      sel_meta <- sel_meta[keep, ]
-      sel_meta$CombinedCondition <- factor(combined[keep], levels = input$visible_conditions)
+
+      # No condition chosen is a legitimate question -- "what do these genes
+      # look like across this dataset" -- so every sample falls into one group
+      # instead of the tab refusing to draw anything.
+      if (!length(input$conditions)) {
+        sel_meta$CombinedCondition <- factor(rep("All samples", nrow(sel_meta)))
+      } else {
+        combined <- apply(sel_meta[input$conditions], 1, paste, collapse = ".")
+        visible  <- if (length(input$visible_conditions)) input$visible_conditions
+                    else unique(combined)
+        keep     <- combined %in% visible
+        sel_meta <- sel_meta[keep, ]
+        sel_meta$CombinedCondition <- factor(combined[keep], levels = visible)
+      }
+      req(nrow(sel_meta) > 0)
       samp_ids <- sel_meta$SampleID
       
       tmm_data <- load_expression(ds(), unit_reactive())

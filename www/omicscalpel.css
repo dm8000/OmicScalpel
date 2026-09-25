@@ -497,11 +497,49 @@ table.dataTable tbody > tr.selected > * {
   font-size: 12px;
   cursor: grab;
 }
-.rank-list-item:hover { border-color: var(--os-accent) !important; }
-.sortable-ghost, .rank-list-item.sortable-chosen {
-  background: var(--os-accent-dim) !important;
+/* sortable ships .default-sortable rules of its own: #f8f8f8 for an item,
+   #ddeaf6 on hover and #75aadb when dragging -- the R blue. Matching its
+   specificity is what it takes to replace them. */
+.default-sortable .rank-list-item,
+.default-sortable .rank-list-container .rank-list-item {
+  background-color: var(--os-surface-2) !important;
+  border: 1px solid var(--os-border-2) !important;
+  color: var(--os-text) !important;
+  padding: 4px 10px !important;
+}
+
+.default-sortable .rank-list-item:hover:not(.disabled) {
+  background-color: rgba(217, 142, 58, .16) !important;
   border-color: var(--os-accent) !important;
-  color: #fff !important;
+  cursor: grab;
+}
+
+.default-sortable .rank-list-item.sortable-selected,
+.default-sortable .rank-list-item.sortable-chosen,
+.default-sortable .rank-list-item.sortable-ghost.sortable-chosen,
+.default-sortable .rank-list-item.sortable-drag {
+  background-color: var(--os-accent) !important;
+  border: 1px solid var(--os-accent) !important;
+  color: #171717 !important;
+}
+
+.default-sortable .rank-list,
+.default-sortable .rank-list-container {
+  background-color: var(--os-surface) !important;
+  border-color: var(--os-border) !important;
+}
+
+.default-sortable .rank-list-title,
+.default-sortable .bucket-list-header {
+  background-color: var(--os-surface-2) !important;
+  color: var(--os-muted) !important;
+  border-color: var(--os-border) !important;
+}
+
+.default-sortable .rank-list.rank-list-empty,
+.default-sortable .rank-list:empty {
+  border-style: dashed !important;
+  border-color: var(--os-border-2) !important;
 }
 
 /* ------------------------------------------------- remaining browser blue -- */

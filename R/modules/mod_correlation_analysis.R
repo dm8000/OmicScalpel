@@ -245,7 +245,7 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
         scale_color_manual(values=reactive_palette()) +
         facet_wrap(vars(Gene, CombinedCondition), ncol=input$plot_cols, nrow=input$plot_rows, scales="free_y") +
         labs(x=xlab, y=ylab, title=input$plot_title) +
-        theme_minimal() +
+        os_theme() +
         theme(plot.title = element_text(hjust=0.5, face="bold", size=input$title_font_size),
               axis.text.x = element_text(angle=45, hjust=1, size=input$axis_text_font_size),
               axis.text.y = element_text(size=input$axis_text_font_size),

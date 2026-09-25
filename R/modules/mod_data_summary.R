@@ -166,7 +166,7 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
       p <- ggplot(filtered_meta(), aes(x = Age)) +
         geom_histogram(fill = "#66C2A5", color = "white", bins = 30) +
         labs(x = "Age", y = "Count") +
-        theme_minimal() +
+        os_theme() +
         theme(plot.title = element_text(face = "bold"))
       ggplotly(p) %>% config(displayModeBar = FALSE)
     })

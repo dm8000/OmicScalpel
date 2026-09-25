@@ -83,3 +83,58 @@ os_layout <- function(left = NULL, center = NULL, right = NULL,
 
 # A section label inside a column, for grouping controls without a full panel.
 os_label <- function(text) tags$div(class = "os-section", text)
+
+# --- plot theme -------------------------------------------------------------
+#
+# The figures keep a white background on purpose: they are the exported
+# artefact and go into papers. What is shared here is everything else -- type
+# scale, grid weight, how the panel is framed -- so a plot from any tab looks
+# like it came from the same app, and the app's amber reads as the accent it is
+# rather than a colour someone picked once.
+
+OS_PLOT <- list(
+  ink     = "#2b2b2b",   # text and axes
+  muted   = "#6b6b6b",   # secondary text
+  grid    = "#e6e6e6",
+  frame   = "#cfcfcf",
+  accent  = "#d98e3a",   # the app's amber, on white
+  accent2 = "#3f7d8c"    # its complement, for a second series
+)
+
+# A categorical palette that sits beside the amber instead of fighting it.
+os_palette <- function(n) {
+  base <- c("#d98e3a", "#3f7d8c", "#8c6e97", "#6f9457", "#c2695b",
+            "#4f7ca8", "#b08b4f", "#7a7a7a", "#9c5f7c", "#5f8f7a",
+            "#a87f5f", "#557a8c")
+  if (n <= length(base)) base[seq_len(n)] else grDevices::colorRampPalette(base)(n)
+}
+
+os_theme <- function(base_size = 13) {
+  ggplot2::theme_minimal(base_size = base_size) +
+    ggplot2::theme(
+      plot.background    = ggplot2::element_rect(fill = "white", colour = NA),
+      panel.background   = ggplot2::element_rect(fill = "white", colour = NA),
+      panel.border       = ggplot2::element_rect(fill = NA, colour = OS_PLOT$frame,
+                                                 linewidth = .4),
+      panel.grid.major   = ggplot2::element_line(colour = OS_PLOT$grid, linewidth = .35),
+      panel.grid.minor   = ggplot2::element_blank(),
+      axis.text          = ggplot2::element_text(colour = OS_PLOT$muted, size = base_size - 2),
+      axis.title         = ggplot2::element_text(colour = OS_PLOT$ink, size = base_size - 1),
+      axis.ticks         = ggplot2::element_line(colour = OS_PLOT$frame, linewidth = .3),
+      plot.title         = ggplot2::element_text(colour = OS_PLOT$ink, face = "bold",
+                                                 size = base_size + 2,
+                                                 margin = ggplot2::margin(b = 8)),
+      plot.subtitle      = ggplot2::element_text(colour = OS_PLOT$muted),
+      legend.title       = ggplot2::element_text(colour = OS_PLOT$muted,
+                                                 size = base_size - 2),
+      legend.text        = ggplot2::element_text(colour = OS_PLOT$ink,
+                                                 size = base_size - 2),
+      legend.key         = ggplot2::element_blank(),
+      strip.background   = ggplot2::element_rect(fill = "#f4f4f4", colour = OS_PLOT$frame,
+                                                 linewidth = .4),
+      strip.text         = ggplot2::element_text(colour = OS_PLOT$ink, face = "bold",
+                                                 size = base_size - 2,
+                                                 margin = ggplot2::margin(4, 4, 4, 4)),
+      plot.margin        = ggplot2::margin(10, 12, 8, 8)
+    )
+}

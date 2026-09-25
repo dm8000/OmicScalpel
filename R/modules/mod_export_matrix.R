@@ -21,7 +21,7 @@ exportMatrixUI <- function(id) {
   os_layout(
     left = tagList(
       os_panel(title = "Selection", collapse = TRUE,
-        uiOutput(ns("unit_ui")),
+        selectInput(ns("file_unit"), "Pick normalization unit:", choices = NULL),
         selectizeInput(ns("genes_list"), "Select genes:", choices = NULL,
                        multiple = TRUE,
                        options = list(server = TRUE, maxOptions = 1000)),
@@ -80,9 +80,6 @@ exportMatrixServer <- function(id, ds, meta, go_to = NULL) {
       }
     })
     
-    output$unit_ui <- renderUI({
-      selectInput(session$ns("file_unit"), "Pick normalization unit:", choices = NULL)
-    })
     
     data_reactive <- reactive({
       req(ds(), input$file_unit)

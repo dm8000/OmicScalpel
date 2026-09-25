@@ -59,7 +59,18 @@ for (col in c("Author", "publication")) {
 }
 
 # shape the apps depend on
-if (ncol(fx_meta) != ncol(real_meta)) fail("fixture has ", ncol(fx_meta), " metadata columns, real file has ", ncol(real_meta))
+# The fixture is a snapshot of the schema, not a mirror of it: the real file
+# legitimately grows a column whenever someone makes a cutoff. What matters is
+# that the fixture invents nothing and still covers the shape modules are
+# tested against.
+invented <- setdiff(names(fx_meta), names(real_meta))
+if (length(invented)) {
+  fail("fixture has columns the real file does not: ", paste(invented, collapse = ", "))
+}
+covered <- length(intersect(names(fx_meta), names(real_meta))) / ncol(real_meta)
+if (covered < 0.9) {
+  fail("fixture covers only ", round(covered * 100), "% of the real columns")
+}
 if (length(unique(fx_meta$dataset)) != 2) fail("fixture must hold exactly 2 datasets")
 if (length(unique(fx_meta$`Data.type`)) < 2) fail("the 2 fixture datasets must differ in Data.type")
 if (anyDuplicated(fx_meta$SampleID)) fail("duplicate SampleID in fixture")
