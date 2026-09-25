@@ -340,7 +340,9 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
         p
       })
       
-      combined_plot <- wrap_plots(plot_list, ncol = ceiling(sqrt(length(plot_list)))) +
+      # ceiling(sqrt(n)) is square; a screen and a figure in a paper are
+      # both wider than tall, and a boxplot needs width more than height
+      combined_plot <- wrap_plots(plot_list, ncol = os_facet_cols(length(plot_list))) +
         plot_annotation(title = input$plot_title) &
         theme(plot.title = element_text(size = input$title_size, face = "bold", hjust = 0.5))
       

@@ -184,3 +184,22 @@ os_plotly <- function(p, title = NULL) {
     ) |>
     plotly::config(displayModeBar = FALSE)
 }
+
+# How many columns a grid of n panels should have.
+#
+# facet_wrap's own default is ceiling(sqrt(n)), which is square and ignores the
+# shape of the canvas: 12 panels become 4x3 whether the plot is wide or tall.
+# These are wider than tall, because a screen and a figure in a paper both are,
+# and because a boxplot needs width more than height.
+os_facet_cols <- function(n, max_cols = 10L) {
+  n <- max(as.integer(n), 1L)
+  cols <- if (n <= 3L) n
+          else if (n <= 8L)  ceiling(n / 2)
+          else if (n <= 15L) ceiling(n / 3)
+          else               ceiling(sqrt(n * 1.6))
+  min(max(cols, 1L), max_cols)
+}
+
+os_facet_rows <- function(n, cols = os_facet_cols(n), max_rows = 10L) {
+  min(max(ceiling(max(as.integer(n), 1L) / max(cols, 1L)), 1L), max_rows)
+}

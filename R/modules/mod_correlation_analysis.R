@@ -17,7 +17,9 @@ correlationUI <- function(id) {
       left = tagList(
         os_panel(title = "Selection", collapse = TRUE,
                  uiOutput(ns("condition_select")),
-                 uiOutput(ns("gene_select")),
+                 selectizeInput(ns("genes"), "Select Genes", choices = NULL,
+                       multiple = TRUE,
+                       options = list(server = TRUE, maxOptions = 1000)),
                  uiOutput(ns("numeric_column_select")),
                  actionButton(ns("plot"), "Plot")
         ),
@@ -150,24 +152,18 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
         selectInput(session$ns("conditions"), "Select Conditions",
                     choices = get_conditions_with_multiple_values(ds()), multiple = TRUE)
       })
-      files <- c("_TMM.txt","_CPM.txt","_TPM.txt","_FPKM.txt","_count.txt","_unknown_unit.txt")
-      tmm_path <- NULL; unit <- ""
-      for (suf in files) {
-        p <- file.path(os_path("hubdata"), ds(), paste0(ds(), suf))
-        if (file.exists(p)) {
-          tmm_path <- p
-          unit <- if (suf=="_unknown_unit.txt") "unknown" else toupper(sub("^_|\\.txt$","", suf))
-          break
-        }
-      }
-      req(tmm_path)
+      # list_units() returns the unit already clean. The hand-rolled search this
+      # replaces derived the label with sub("^_|\\.txt$", ...), which removes
+      # only the first match -- so "_TMM.txt" became "TMM.TXT" and the file
+      # extension ended up on the y axis. It also missed "_counts.txt" and
+      # "_combat.txt", which the data layer knows about.
+      units <- list_units(ds())
+      req(length(units) > 0)
+      unit <- units[1]
       updateTextInput(session, "y_axis_label", value = paste0("Expression (", unit, ")"))
-      tmm_data <- read.delim(tmm_path)
-      output$gene_select <- renderUI({
-        selectizeInput(session$ns("genes"), "Select Genes",
-                       choices = unique(tmm_data$Symbol),
-                       multiple = TRUE, options = list(server=TRUE, maxOptions=1000))
-      })
+      tmm_data <- load_expression(ds(), unit)
+      updateSelectizeInput(session, "genes",
+                           choices = unique(tmm_data$Symbol), server = TRUE)
       vals <- get_numeric_columns_with_multiple_values(ds())
       output$numeric_column_select <- renderUI({
         if (length(vals) == 0) h4("No numeric columns…")
@@ -202,9 +198,28 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
           nrow(expand.grid(lapply(input$conditions, function(c) unique(sel_md2[[c]]))))
         }
       }
+      # The grid follows the data unless the sliders already hold enough room.
+      # Refusing to draw and telling the user to go turn two sliders up was the
+      # old behaviour; now pressing Plot sizes them, and the sliders move so
+      # what is on screen still matches what they say.
       panels_available <- input$plot_rows * input$plot_cols
       if (panels_needed > panels_available) {
-        return(ggplot() + annotate("text", x=0.5,y=0.5, label="Error: Not enough panels.\nIncrease rows or columns.", size=6) + theme_void())
+        auto_cols <- os_facet_cols(panels_needed)
+        auto_rows <- os_facet_rows(panels_needed, auto_cols)
+        updateSliderInput(session, "plot_cols", value = auto_cols)
+        updateSliderInput(session, "plot_rows", value = auto_rows)
+        use_cols <- auto_cols; use_rows <- auto_rows
+      } else {
+        use_cols <- input$plot_cols; use_rows <- input$plot_rows
+      }
+
+      if (panels_needed > use_rows * use_cols) {
+        return(ggplot() +
+          annotate("text", x = .5, y = .5, size = 5, colour = OS_PLOT$muted,
+                   label = paste0(panels_needed, " panels do not fit in ",
+                                  use_cols, " x ", use_rows,
+                                  ".\nPick fewer genes or conditions.")) +
+          theme_void())
       }
       
       sel_md <- meta() %>% filter(dataset==ds())
@@ -217,13 +232,7 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
         sel_md <- sel_md %>% filter(CombinedCondition %in% order_conds)
       }
       
-      files <- c("_TMM.txt","_CPM.txt","_TPM.txt","_FPKM.txt","_count.txt","_unknown_unit.txt")
-      tmm_path <- NULL
-      for (s in files) {
-        p <- file.path(os_path("hubdata"), ds(), paste0(ds(),s))
-        if (file.exists(p)) { tmm_path <- p; break }
-      }
-      expr <- read.delim(tmm_path)
+      expr <- load_expression(ds())
       
       ids <- sel_md$SampleID
       plot_df <- bind_rows(lapply(input$genes, function(g) {
@@ -243,7 +252,7 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
         geom_point(size=input$dot_size, alpha=0.5) +
         geom_smooth(method="lm", formula=y~x, se=FALSE, linetype="dashed", size=input$line_thickness) +
         scale_color_manual(values=reactive_palette()) +
-        facet_wrap(vars(Gene, CombinedCondition), ncol=input$plot_cols, nrow=input$plot_rows, scales="free_y") +
+        facet_wrap(vars(Gene, CombinedCondition), ncol = use_cols, nrow = use_rows, scales = "free_y") +
         labs(x=xlab, y=ylab, title=input$plot_title) +
         os_theme() +
         theme(plot.title = element_text(hjust=0.5, face="bold", size=input$title_font_size),

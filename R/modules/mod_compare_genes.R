@@ -301,7 +301,8 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL) {
                                                            "grey95", NA),
                                            size = input$grid_line_size * 0.5)
         ) +
-        facet_wrap(~ CombinedCondition, scales = "free_y") +
+        facet_wrap(~ CombinedCondition, scales = "free_y",
+                   ncol = os_facet_cols(nlevels(droplevels(df$CombinedCondition)))) +
         plot_annotation(title = input$plot_title)
       
       if (input$show_wilcox && input$stat_line_size > 0) {
