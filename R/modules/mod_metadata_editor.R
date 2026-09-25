@@ -117,7 +117,7 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
       subset_data <- rv$data[rv$data$dataset == rv$current_dataset, , drop = FALSE]
       if (isTRUE(input$toggle_na)) {
         non_na_cols   <- colnames(subset_data)[colSums(subset_data == "NA" | is.na(subset_data)) < nrow(subset_data)]
-        essential     <- c("SampleID", "dataset", "Data.type", "Author", "LABEID")
+        essential     <- c("SampleID", "dataset", "Data.type", "Author", "TsengID")
         required_cols <- union(non_na_cols, intersect(essential, colnames(subset_data)))
         if (!is.null(input$existing_column) && input$existing_column != "") {
           required_cols <- union(required_cols, input$existing_column)
@@ -166,10 +166,10 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
     generate_tseng_ids <- function(new_metadata, existing_data) {
       max_numbers <- list()
       if (!is.null(existing_data) && nrow(existing_data) > 0) {
-        tse_entries <- existing_data[grepl("^TSE\\d+\\.", existing_data$LABEID, perl = TRUE), ]
+        tse_entries <- existing_data[grepl("^TSE\\d+\\.", existing_data$TsengID, perl = TRUE), ]
         for (dtype in unique(tse_entries$Data.type)) {
           entries <- tse_entries[tse_entries$Data.type == dtype, ]
-          numbers <- sapply(entries$LABEID, function(tid) {
+          numbers <- sapply(entries$TsengID, function(tid) {
             m <- regmatches(tid, regexec("^TSE(\\d+)\\.", tid))[[1]]
             if (length(m)>1) as.numeric(m[2]) else NA
           })
@@ -181,7 +181,7 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
         dtype <- new_metadata$Data.type[i]
         cur   <- max_numbers[[dtype]] %||% 0
         nxt   <- cur + 1
-        new_metadata$LABEID[i] <- sprintf("TSE%05d.%s", nxt, dtype)
+        new_metadata$TsengID[i] <- sprintf("TSE%05d.%s", nxt, dtype)
         max_numbers[[dtype]]    <- nxt
       }
       new_metadata
@@ -231,23 +231,29 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
         showNotification(paste("Missing required columns:", paste(missing, collapse=", ")), type="error")
         return()
       }
-      if (!"LABEID" %in% names(uploaded_df)) uploaded_df$LABEID <- "NA"
+      # The identifier this code generates and looks after is TsengID -- the
+      # values it writes, TSE00048.RNAseq, are exactly what the column holds.
+      # It referenced LABEID, which does not exist in the metadata, so
+      # rv$data$LABEID was NULL and uploading a file for a sample that already
+      # exists died on "replacement has length zero". Adding a column to
+      # existing samples, which the tab's own instructions invite, never worked.
+      if (!"TsengID" %in% names(uploaded_df)) uploaded_df$TsengID <- "NA"
       
       if (!is.null(rv$data) && nrow(rv$data)) {
         for (i in seq_len(nrow(uploaded_df))) {
-          if (uploaded_df$LABEID[i] == "NA") {
+          if (uploaded_df$TsengID[i] == "NA") {
             old_idx <- which(
               rv$data$dataset  == uploaded_df$dataset[i] &
                 rv$data$SampleID == uploaded_df$SampleID[i]
             )
             if (length(old_idx) == 1) {
-              uploaded_df$LABEID[i] <- rv$data$LABEID[old_idx]
+              uploaded_df$TsengID[i] <- rv$data$TsengID[old_idx]
             }
           }
         }
       }
       
-      na_idx <- uploaded_df$LABEID=="NA"
+      na_idx <- uploaded_df$TsengID=="NA"
       if (any(na_idx)) {
         na_df    <- uploaded_df[na_idx, , drop=FALSE]
         non_na   <- uploaded_df[!na_idx, , drop=FALSE]
@@ -260,6 +266,10 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
         uploaded_df <- if (nrow(non_na)) rbind(non_na, na_df) else na_df
       }
       
+      # Which columns the file actually carries. Everything else on a matched
+      # row is left alone -- see the merge below.
+      uploaded_cols <- names(uploaded_df)
+
       if (!is.null(rv$data) && nrow(rv$data)) {
         for (col in names(rv$data)) {
           rv$data[[col]] <- as.character(rv$data[[col]])
@@ -280,14 +290,25 @@ metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
             merged$dataset  == row_i$dataset
         )
         if (length(idx) > 0) {
-          if (row_i$LABEID == "NA") {
-            row_i$LABEID <- merged$LABEID[idx[1]]
+          if (row_i$TsengID == "NA") {
+            row_i$TsengID <- merged$TsengID[idx[1]]
           }
-          merged[idx[1], ] <- row_i
+          # Update only the columns the file carries. Replacing the whole row
+          # -- which is what this did -- wrote "NA" into every column the file
+          # left out, because the block above pads the upload to the full set
+          # of names. The tab's own instructions say "you can add your own
+          # classifiers", so a file with SampleID, dataset, Data.type, Author
+          # and one new column is exactly what someone would send; it used to
+          # blank the other ~190 columns of those samples, silently, with a
+          # backup taken of the already-damaged file.
+          for (col in intersect(uploaded_cols, names(merged))) {
+            merged[idx[1], col] <- row_i[[col]]
+          }
           if (length(idx) > 1) {
             merged <- merged[-idx[-1], ]
           }
         } else {
+          # a sample that is not there yet arrives whole
           merged <- rbind(merged, row_i)
         }
       }
