@@ -78,3 +78,58 @@ adjusted_effect <- function(expr, group, covars) {
     n2      = sum(df$group == "g2")
   )
 }
+
+# --- survival, which is not just another continuous column -------------------
+
+# Follow-up time and a censoring flag are two columns describing one thing, and
+# treating the time as an ordinary number is wrong in a way that still draws a
+# plot: a short time is either an early death or someone who left the study,
+# and splitting at the median puts those two in the same group.
+#
+# Given the time column, find the event column that goes with it.
+os_survival_event_for <- function(time_col, md) {
+  if (is.null(time_col) || !nzchar(time_col)) return(NULL)
+  if (!grepl("time|fu|follow", time_col, ignore.case = TRUE)) return(NULL)
+  stem <- sub("[._ -]?(time|fu|followup|follow.up).*$", "", time_col, ignore.case = TRUE)
+  cands <- setdiff(names(md)[startsWith(names(md), stem)], time_col)
+  if (!length(cands)) return(NULL)
+  # A name that says what it is comes first, but the test is the values.
+  says <- grepl("event|status|censor|death|dead", cands, ignore.case = TRUE)
+  for (cn in c(cands[says], cands[!says])) {
+    v <- suppressWarnings(as.numeric(as.character(md[[cn]])))
+    v <- v[!is.na(v)]
+    if (length(v) >= 2 && all(v %in% c(0, 1)) && length(unique(v)) == 2) return(cn)
+  }
+  NULL
+}
+
+# One dataset's contribution to a survival meta-analysis: the log hazard ratio
+# for expression, and its standard error, from a Cox model.
+#
+# The expression is standardised within the dataset first. One study reports
+# TPM and the next TMM, so a hazard ratio "per unit of expression" means a
+# different thing in each and pooling them would be arithmetic on incomparable
+# numbers. Per standard deviation is the same quantity everywhere.
+cox_effect <- function(expr, time, event) {
+  expr  <- suppressWarnings(as.numeric(expr))
+  time  <- suppressWarnings(as.numeric(time))
+  event <- suppressWarnings(as.numeric(event))
+
+  ok <- is.finite(expr) & is.finite(time) & time > 0 & !is.na(event) & event %in% c(0, 1)
+  expr <- expr[ok]; time <- time[ok]; event <- event[ok]
+  if (length(expr) < 10 || sum(event) < 3) return(NULL)
+
+  s <- stats::sd(expr)
+  if (!is.finite(s) || s == 0) return(NULL)
+  z <- (expr - mean(expr)) / s
+
+  fit <- tryCatch(survival::coxph(survival::Surv(time, event) ~ z),
+                  error = function(e) NULL, warning = function(w) NULL)
+  if (is.null(fit)) return(NULL)
+  sm <- summary(fit)
+  list(d      = unname(sm$coefficients[1, "coef"]),      # log hazard ratio per SD
+       se     = unname(sm$coefficients[1, "se(coef)"]),
+       pvalue = unname(sm$coefficients[1, "Pr(>|z|)"]),
+       n      = length(expr),
+       events = sum(event))
+}

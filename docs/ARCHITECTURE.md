@@ -200,6 +200,37 @@ but the cause was reading whole matrices single-threaded. With the row read,
 eighteen datasets take 0.38 s to read and spreading that over eight cores saved
 0.13 s, so the fork went back out. Measured, not assumed.
 
+## Survival is not another continuous column
+
+The meta-analysis offers every metadata column as the condition, and a
+follow-up time is a number, so `DEMO.OS.time` used to be split at its median
+and compared by t-test. That puts an early death and someone who left the study
+in the same group, and draws a forest plot that looks exactly like a real one.
+
+`os_survival_event_for()` in `R/meta_stats.R` finds the censoring flag that
+goes with a time column -- by name first, but by its values in the end: the
+partner has to be 0/1. When there is one, the tab fits `coxph` per dataset and
+pools hazard ratios instead (`sm = "HR"`, and the labels change with it).
+
+The expression is standardised within each dataset before the model, so the
+effect is **per standard deviation**. One study reports TPM and the next TMM; a
+hazard ratio per unit of expression is a different quantity in each, and
+pooling them would be arithmetic on incomparable numbers.
+
+A Cox model needs samples and events, so cohorts get dropped -- and a forest
+plot with one row and no explanation looks like a bug, so the summary names
+each cohort that could not be fitted and why.
+
+## A plan describes a whole screen
+
+`os_ai_state()` fills in every control the target tab declares a default for
+and the plan does not mention. Without it the tab kept whatever the researcher
+had left there: a question answered after someone had split Across datasets by
+sex came back still split by sex, because the plan never mentioned `split_col`
+so nobody cleared it. Controls with no declared default are left alone --
+`numeric_columns` has no sensible empty value, and the plans that use it always
+set it.
+
 ## Roadmap
 
 **Inline help on the other tabs.** `os_help()` and `os_field()` in

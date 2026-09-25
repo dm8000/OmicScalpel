@@ -443,6 +443,30 @@ ai_pick_tool <- function(intent, variable, var_kind, gene, keep, catalog,
                                length(keep), if (length(keep) == 1) "" else "s")))
   }
 
+  # Several cohorts with follow-up and a censoring flag is a survival
+  # meta-analysis: one Cox model each, pooled as hazard ratios. Sending that to
+  # a cutpoint search in the largest one throws the other cohorts away.
+  if (identical(intent, "survival")) {
+    with_surv <- Filter(function(d) !is.null(ai_survival_columns(catalog[[d]])), keep)
+    if (length(with_surv) > 1) {
+      times <- vapply(with_surv, function(d) ai_survival_columns(catalog[[d]])$time,
+                      character(1))
+      shared <- names(sort(table(times), decreasing = TRUE))[1]
+      with_surv <- with_surv[times == shared]
+      if (length(with_surv) > 1) {
+        tr <- ai_trace(tr, "Tool",
+                       sprintf("%d datasets record follow-up in %s, so this is a survival meta-analysis of hazard ratios",
+                               length(with_surv), shared))
+        return(ai_plan_out("meta_analysis", NULL, with_surv,
+                           list(biomolecule = gene, condition = shared,
+                                data_preference = ai_common_unit(with_surv, catalog)),
+                           tr,
+                           sprintf("%s against survival across %d datasets.", gene,
+                                   length(with_surv))))
+      }
+    }
+  }
+
   if (intent %in% c("survival", "distribution")) {
     d <- pick_one()
     surv <- ai_survival_columns(catalog[[d]])

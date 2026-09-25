@@ -20,7 +20,7 @@ AI_TOOLS <- list(
     controls = list(
       genes           = list(type = "selectize", multiple = TRUE),
       numeric_columns = list(type = "select"),
-      conditions      = list(type = "select", multiple = TRUE)
+      conditions      = list(type = "select", multiple = TRUE, default = character(0))
     ),
     draw = "plot"
   ),
@@ -33,9 +33,9 @@ AI_TOOLS <- list(
     controls = list(
       genes        = list(type = "selectize", multiple = TRUE),
       datasets     = list(type = "checkboxgroup", multiple = TRUE),
-      split_col    = list(type = "select"),
-      housekeeping = list(type = "checkbox"),
-      log_y        = list(type = "checkbox")
+      split_col    = list(type = "select", default = ""),
+      housekeeping = list(type = "checkbox", default = TRUE),
+      log_y        = list(type = "checkbox", default = TRUE)
     ),
     draw = "plot"
   ),
@@ -48,12 +48,12 @@ AI_TOOLS <- list(
     controls = list(
       biomolecule       = list(type = "text"),
       condition         = list(type = "select"),
-      group1_categories = list(type = "select", multiple = TRUE),
-      group2_categories = list(type = "select", multiple = TRUE),
-      numeric_split     = list(type = "select"),
-      adjust_for        = list(type = "select", multiple = TRUE),
+      group1_categories = list(type = "select", multiple = TRUE, default = character(0)),
+      group2_categories = list(type = "select", multiple = TRUE, default = character(0)),
+      numeric_split     = list(type = "select", default = "median"),
+      adjust_for        = list(type = "select", multiple = TRUE, default = character(0)),
       data_preference   = list(type = "select"),
-      stat_test         = list(type = "radio")
+      stat_test         = list(type = "radio", default = "ttest")
     ),
     draw = "generate_plot"
   ),
@@ -65,8 +65,8 @@ AI_TOOLS <- list(
     needs = c("genes", "conditions"),
     controls = list(
       genes          = list(type = "selectize", multiple = TRUE),
-      conditions     = list(type = "select", multiple = TRUE),
-      log2_transform = list(type = "checkbox")
+      conditions     = list(type = "select", multiple = TRUE, default = character(0)),
+      log2_transform = list(type = "checkbox", default = FALSE)
     ),
     draw = "plot"
   ),
@@ -78,8 +78,8 @@ AI_TOOLS <- list(
     needs = c("genes"),
     controls = list(
       genes          = list(type = "selectize", multiple = TRUE),
-      conditions     = list(type = "select", multiple = TRUE),
-      log2_transform = list(type = "checkbox")
+      conditions     = list(type = "select", multiple = TRUE, default = character(0)),
+      log2_transform = list(type = "checkbox", default = FALSE)
     ),
     draw = "plot"
   ),
@@ -99,8 +99,8 @@ AI_TOOLS <- list(
       event_col    = list(type = "select"),
       outcome_col  = list(type = "select"),
       rule         = list(type = "radio"),
-      split_col    = list(type = "select"),
-      split_levels = list(type = "checkboxgroup", multiple = TRUE)
+      split_col    = list(type = "select", default = ""),
+      split_levels = list(type = "checkboxgroup", multiple = TRUE, default = character(0))
     ),
     draw = "find"
   ),
@@ -120,11 +120,32 @@ AI_TOOLS <- list(
 
 # --- applying a plan --------------------------------------------------------
 
+# The full state a plan asks for: what it sets, plus every other declared
+# control put back to its default.
+#
+# Without the second half the tab keeps whatever the researcher left there. You
+# split Across datasets by sex, asked a new question, and the new answer came
+# back still split by sex -- the plan had not mentioned split_col, so nobody
+# cleared it. A plan describes a whole screen, not a patch on the last one.
+# Controls with no declared default are left alone on purpose: numeric_columns
+# has no sensible empty value, and the plans that use it always set it.
+os_ai_state <- function(tab, controls) {
+  spec <- AI_TOOLS[[tab]]
+  if (is.null(spec)) return(controls)
+  for (id in names(spec$controls)) {
+    if (id %in% names(controls)) next
+    d <- spec$controls[[id]]$default
+    if (!is.null(d)) controls[[id]] <- d
+  }
+  controls
+}
+
 # One update*() per control, chosen by the declared type. A module calls this
 # on itself, in its own session, so the namespace is already right.
 os_ai_apply <- function(session, tab, controls) {
   spec <- AI_TOOLS[[tab]]
   if (is.null(spec) || !length(controls)) return(invisible(FALSE))
+  controls <- os_ai_state(tab, controls)
   for (id in names(controls)) {
     ctl <- spec$controls[[id]]
     if (is.null(ctl)) next                      # not ours to set
@@ -133,6 +154,9 @@ os_ai_apply <- function(session, tab, controls) {
       select    = updateSelectInput(session, id, selected = value),
       # server = TRUE selectize holds no choices client-side, so the value has
       # to arrive with the choices or it is dropped on the floor.
+      # server = TRUE selectize holds no choices client-side, so the value has
+      # to arrive with the choices or it is dropped on the floor. Clearing it
+      # means clearing both.
       selectize = updateSelectizeInput(session, id, choices = value,
                                        selected = value, server = TRUE),
       text      = updateTextInput(session, id, value = value),
@@ -156,10 +180,14 @@ os_ai_apply <- function(session, tab, controls) {
 os_ai_ready <- function(input, tab, controls) {
   spec <- AI_TOOLS[[tab]]
   if (is.null(spec)) return(TRUE)
+  controls <- os_ai_state(tab, controls)
   for (id in names(controls)) {
     if (is.null(spec$controls[[id]])) next
     want <- controls[[id]]
     got  <- input[[id]]
+    # A cleared multi-select reports NULL, not character(0); asking for one and
+    # seeing the other is the same state.
+    if (is.null(got) && !length(want)) next
     if (is.null(got)) return(id)
     ok <- if (isTRUE(spec$controls[[id]]$multiple)) {
       setequal(as.character(got), as.character(want))

@@ -50,6 +50,8 @@ plan_for <- function(...) {
 
 # Drive one module the way the app does: publish the plan, let the gate apply
 # it, then report the inputs back as a browser would.
+both_ds <- c("DEMO_RNAseq", "DEMO_Array")
+
 drive <- function(server, plan, extra = list()) {
   bus <- reactiveVal(NULL)
   out <- NULL
@@ -58,7 +60,10 @@ drive <- function(server, plan, extra = list()) {
                                  meta = reactive(md), go_to = NULL, ai = bus), {
     bus(plan)
     session$flushReact()
-    do.call(session$setInputs, c(plan$controls, extra))
+    full <- os_ai_state(plan$tab, plan$controls)
+    # `extra` stands in for the page defaults a browser sends; where the plan
+    # already decides a control, the plan wins.
+    do.call(session$setInputs, c(full, extra[setdiff(names(extra), names(full))]))
     session$flushReact()
     out <<- list(drew = isTRUE(draw() > 0),
                  plot = tryCatch(output$facet_plot,
@@ -134,6 +139,40 @@ chk(manual$drew && !is.character(manual$plot),
     "pressing the button by hand still draws, with no plan anywhere",
     if (is.character(manual$plot)) manual$plot else "nothing rendered")
 
+# --- what the researcher left behind ------------------------------------------
+# You split Across datasets by sex, asked a new question, and the answer came
+# back still split by sex: the plan had not mentioned split_col, so nobody
+# cleared it. A plan describes a whole screen, not a patch on the last one.
+left_over <- NULL
+bus3 <- reactiveVal(NULL)
+ad_plan <- ai_plan_out("across_datasets", NULL, c("DEMO_RNAseq"),
+                       list(genes = GENE, datasets = "DEMO_RNAseq"),
+                       list(), "one gene")
+testServer(acrossDatasetsServer,
+           args = list(id = "across_datasets", ds = reactiveVal(DS),
+                       meta = reactive(md), go_to = NULL, ai = bus3), {
+  # the researcher's own setting, made before the question was asked
+  session$setInputs(genes = GENE, datasets = both_ds, split_col = "DEMO.Responder",
+                    housekeeping = FALSE, log_y = FALSE, plot = 1)
+  session$flushReact()
+  before <- input$split_col
+
+  bus3(ad_plan)
+  session$flushReact()
+  # the browser reporting back what os_ai_apply() sent
+  do.call(session$setInputs, os_ai_state("across_datasets", ad_plan$controls))
+  session$flushReact()
+
+  left_over <<- list(before = before, after = input$split_col,
+                     housekeeping = input$housekeeping, drew = isTRUE(draw() > 1))
+})
+chk(identical(left_over$before, "DEMO.Responder"), "the split was set by hand first")
+chk(identical(left_over$after, ""), "and a plan that does not mention it clears it",
+    left_over$after)
+chk(isTRUE(left_over$housekeeping),
+    "every other control the plan is silent about goes back to its default too")
+chk(left_over$drew, "and the tab draws the state the plan describes")
+
 # --- a plan for another tab is ignored ----------------------------------------
 
 other <- NULL
@@ -162,9 +201,9 @@ testServer(metaAnalysisServer,
                        meta = reactive(md), go_to = NULL, ai = bus), {
   bus(meta_plan)
   session$flushReact()
-  do.call(session$setInputs, c(meta_plan$controls,
-                               list(stat_test = "ttest", filter_conditions = character(0),
-                                    adjust_for = character(0))))
+  # the whole state the plan describes, which is what the browser reports back
+  do.call(session$setInputs, c(os_ai_state("meta_analysis", meta_plan$controls),
+                               list(filter_conditions = character(0))))
   session$flushReact()
   res <<- list(drew = isTRUE(draw() > 0), n = length(perform_analysis()$results),
                plot = tryCatch(output$forest_plot, error = function(e) conditionMessage(e)))

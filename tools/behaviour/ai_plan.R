@@ -129,6 +129,25 @@ chk(identical(p3$controls$time_col, "DEMO.OS.time") &&
     "with the time and event columns it found in that dataset",
     paste(unlist(p3$controls), collapse = " "))
 
+# --- survival in more than one cohort -----------------------------------------
+# One cohort is a cutpoint search; several is a meta-analysis of hazard ratios.
+# Sending the second case to the first throws away every cohort but the biggest.
+CAT2 <- CAT
+CAT2$MouseB <- ds("MouseB", 40, "Mmu", "BAT", "RNAseq", "TPM",
+                  list(num("DEMO.OS.time", 1, 80), cat_("DEMO.OS.event", c("0", "1"))))
+INDEX2 <- INDEX; INDEX2$datasets$MouseB <- c("LEP", "Ucp1")
+
+psm <- ai_decide(answers(intent = choice("survival"), species = choice("Mmu"),
+                         tissue = choice("any"), variable = choice("none")),
+                 CAT2, GENES, index = INDEX2)
+chk(isTRUE(psm$ok) && identical(psm$tab, "meta_analysis"),
+    "survival in two cohorts pools hazard ratios instead of cutting one",
+    psm$tab, " / ", psm$headline)
+chk(identical(psm$controls$condition, "DEMO.OS.time"),
+    "with the follow-up time as the condition, which is what triggers the Cox path",
+    psm$controls$condition)
+chk(length(psm$datasets) == 2, "and both cohorts in it", length(psm$datasets))
+
 # --- the follow-up: split by a group -----------------------------------------
 
 p4 <- ai_decide(answers(gene = choice("ADIPOQ"), followup = choice("split"),

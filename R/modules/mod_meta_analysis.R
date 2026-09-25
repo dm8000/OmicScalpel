@@ -13,6 +13,10 @@ metaAnalysisUI <- function(id) {
           selectInput(ns("group1_categories"), "Group 1 (Reference):", choices = NULL, multiple = TRUE),
           selectInput(ns("group2_categories"), "Group 2 (Comparison):", choices = NULL, multiple = TRUE)
         ),
+        conditionalPanel(condition = "output.show_survival", ns = ns,
+          h4("Survival Analysis"),
+          uiOutput(ns("survival_note"))
+        ),
         conditionalPanel(condition = "output.show_numeric_groups", ns = ns,
           h4("Numeric Variable Analysis"),
           selectInput(ns("numeric_split"), "Split method:",
@@ -181,7 +185,37 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
     })
     outputOptions(output, "show_categorical_groups", suspendWhenHidden = FALSE)
     
+    # Follow-up time and a censoring flag are one thing in two columns. Read as
+    # an ordinary number, the time gets split at its median -- which puts an
+    # early death and someone who left the study in the same group, and draws a
+    # plot that looks exactly like a real one.
+    survival_pair <- reactive({
+      req(input$condition, metadata())
+      ev <- os_survival_event_for(input$condition, metadata())
+      if (is.null(ev)) return(NULL)
+      list(time = input$condition, event = ev)
+    })
+
+    output$show_survival <- reactive({ !is.null(survival_pair()) })
+    outputOptions(output, "show_survival", suspendWhenHidden = FALSE)
+
+    output$survival_note <- renderUI({
+      sp <- survival_pair()
+      req(sp)
+      tagList(
+        tags$p(tags$strong(sp$time), " is follow-up time, and ",
+               tags$strong(sp$event), " says whether the event happened."),
+        tags$p(class = "text-muted", style = "font-size: 12px;",
+               "So this is a Cox model per dataset, not a median split: the ",
+               "forest plot pools hazard ratios per standard deviation of ",
+               "expression. Splitting the time at its median would put an early ",
+               "death and someone lost to follow-up in the same group. The ",
+               "expression is standardised within each dataset first, because a ",
+               "hazard ratio per TPM and one per TMM are not the same quantity."))
+    })
+
     output$show_numeric_groups <- reactive({
+      if (!is.null(survival_pair())) return(FALSE)   # survival has its own panel
       if (!is.null(condition_info()) && length(condition_info()) > 0) {
         return(condition_info()$type == "numeric")
       }
@@ -328,11 +362,82 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
     # os_ai_gate() counts both, so nothing here has to know which one asked.
     draw <- os_ai_gate(id, input, ai, session, button = "generate_plot")
 
+    # One gene's row from one dataset, trying the spellings a symbol takes:
+    # human matrices say UCP1 and mouse ones Ucp1.
+    expr_row <- function(dataset) {
+      want <- unique(c(input$biomolecule, toupper(input$biomolecule),
+                       paste0(toupper(substr(input$biomolecule, 1, 1)),
+                              tolower(substring(input$biomolecule, 2)))))
+      m <- tryCatch(load_expression_row(dataset, want, input$data_preference),
+                    error = function(e) NULL)
+      if (is.null(m) || !nrow(m)) return(NULL)
+      m
+    }
+
+    # A Cox model per dataset, pooled as hazard ratios. The expression is
+    # standardised within each dataset first: a hazard ratio per TPM and one
+    # per TMM are different quantities, and averaging them would be arithmetic
+    # on incomparable numbers.
+    survival_analysis <- function(meta_all, sp) {
+      # ai_real() returns the values that are present, not a mask, so it cannot
+      # be compared elementwise with the column it came from.
+      present <- function(v) !is.na(v) & v != "NA" & nzchar(trimws(as.character(v)))
+      usable <- meta_all[present(meta_all[[sp$time]]) & present(meta_all[[sp$event]]), ,
+                         drop = FALSE]
+      results <- list()
+      skipped <- character(0)
+      note <- function(d, why) skipped[[d]] <<- why
+      for (dataset in unique(usable$dataset)) {
+        rows <- usable[usable$dataset == dataset, , drop = FALSE]
+        m <- expr_row(dataset)
+        if (is.null(m)) { note(dataset, "the gene is not in its matrix"); next }
+        gene_row <- m$Symbol[1]
+        samples <- intersect(rows$SampleID, names(m)[-1])
+        if (length(samples) < 10) {
+          note(dataset, sprintf("only %d samples with follow-up", length(samples))); next
+        }
+
+        expr  <- as.numeric(m[1, samples])
+        idx   <- match(samples, rows$SampleID)
+        time  <- suppressWarnings(as.numeric(as.character(rows[[sp$time]][idx])))
+        event <- suppressWarnings(as.numeric(as.character(rows[[sp$event]][idx])))
+
+        # the same transform rule the group path uses
+        if (!os_matrix_has_negative(dataset, input$data_preference)) {
+          expr <- log2(pmax(expr, 0.001))
+        }
+
+        fit <- cox_effect(expr, time, event)
+        if (is.null(fit)) {
+          note(dataset, "too few events, or the expression does not vary"); next
+        }
+        results[[dataset]] <- list(
+          dataset     = dataset,
+          kind        = "survival",
+          transform   = if (os_matrix_has_negative(dataset, input$data_preference))
+                          "none" else "log2(x + 0.001)",
+          effect_size = fit$d, se = fit$se, pvalue = fit$pvalue,
+          n_group1    = fit$n, n_group2 = fit$events,
+          adjusted    = character(0), adjust_dropped = character(0),
+          data_type   = input$data_preference, filter_info = list())
+      }
+      list(results = results, kind = "survival",
+           had_column = unique(usable$dataset), skipped = skipped,
+           group1_meta = usable, group2_meta = usable[0, , drop = FALSE],
+           filter_summary = list())
+    }
+
     perform_analysis <- eventReactive(draw(), {
       req(draw() > 0, input$biomolecule, input$condition, metadata())
       
       meta_all <- metadata()
-      
+
+      # Survival is its own path. Everything below this assumes two groups of
+      # samples and a difference in means between them, which is not what a
+      # follow-up time with a censoring flag is.
+      sp <- survival_pair()
+      if (!is.null(sp)) return(survival_analysis(meta_all, sp))
+
       if (condition_info()$type == "categorical") {
         req(input$group1_categories, input$group2_categories)
         group1_samples <- meta_all[meta_all[[input$condition]] %in% input$group1_categories & !is.na(meta_all[[input$condition]]), ]
@@ -501,30 +606,40 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
         )
       }))
       
+      # A survival meta-analysis pools log hazard ratios, not standardised mean
+      # differences, and the columns mean different things: n1/n2 are the two
+      # groups in one and the sample count and the number of events in the
+      # other. Labelling a hazard ratio "Cohen's d" would be the same plot
+      # telling a different story.
+      survival <- identical(analysis_data$kind, "survival")
+
       m <- metagen(
         TE            = yi,
         seTE          = sei,
         studlab       = study,
         data          = forest_data_df,
-        sm            = "SMD",
+        sm            = if (survival) "HR" else "SMD",
         comb.fixed    = FALSE,
         comb.random   = TRUE,
         method.tau    = "REML",
         method.random.ci = "HK"
       )
-      
+
       forest(
         m,
         leftcols           = c("studlab", "n1", "n2"),
-        leftlabs           = c("Author",  "n1", "n2"),
+        leftlabs           = if (survival) c("Author", "n", "events")
+                             else c("Author", "n1", "n2"),
         rightcols          = c("TE", "lower", "upper", "w.random"),
-        rightlabs          = c("SMD", "95%-CI", "Weight"),
+        rightlabs          = if (survival) c("HR", "95%-CI", "Weight")
+                             else c("SMD", "95%-CI", "Weight"),
         colgap.forest.left  = unit(2, "cm"),
         colgap.forest.right = unit(1, "cm"),
         digits             = 2,
         print.I2           = TRUE,
         print.pval.Q       = TRUE,
-        smlab              = "Effect Size (Cohen's d)"
+        smlab              = if (survival) "Hazard ratio per SD of expression"
+                             else "Effect Size (Cohen's d)"
       )
     })
     
@@ -542,8 +657,21 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       group2_meta <- analysis_data$group2_meta
       filter_summary <- analysis_data$filter_summary
       
+      # A survival analysis usually drops cohorts -- a Cox model needs samples
+      # and events -- and a forest plot with one row and no explanation looks
+      # like a bug.
+      skipped_text <- ""
+      if (identical(analysis_data$kind, "survival") && length(analysis_data$skipped)) {
+        skipped_text <- paste0(
+          "\n\nFollow-up recorded in ", length(analysis_data$had_column),
+          " dataset(s); ", length(analysis_results), " could be fitted.\n",
+          paste0("  - ", names(analysis_data$skipped), ": ",
+                 unlist(analysis_data$skipped), collapse = "\n"),
+          "\nA Cox model here needs at least 10 samples and 3 events.")
+      }
+
       if (length(analysis_results) == 0) {
-        return("No data available for the specified biomolecule and conditions.\nPlease check:\n- Biomolecule name spelling\n- Group assignments\n- Data file availability")
+        return(paste0("No data available for the specified biomolecule and conditions.\nPlease check:\n- Biomolecule name spelling\n- Group assignments\n- Data file availability", skipped_text))
       }
       
       filter_text <- ""
@@ -558,12 +686,23 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
         "Analysis Summary:",
         paste("- Biomolecule:", input$biomolecule),
         paste("- Condition:", input$condition),
-        paste("- Statistical Test:", ifelse(input$stat_test == "ttest", "T-test", "Wilcoxon test")),
-        paste("- Effect Size Measure: Cohen's d"),
+        if (identical(analysis_data$kind, "survival"))
+          paste("- Statistical Test: Cox proportional hazards, per dataset")
+        else
+          paste("- Statistical Test:", ifelse(input$stat_test == "ttest", "T-test", "Wilcoxon test")),
+        if (identical(analysis_data$kind, "survival"))
+          paste("- Effect Size Measure: hazard ratio per SD of expression")
+        else
+          paste("- Effect Size Measure: Cohen's d"),
         paste("- Data Transformation: log2(x + 0.001) unless negatives detected"),
         paste("- Number of datasets analyzed:", length(analysis_results)),
-        paste("- Total samples in Group 1:", nrow(group1_meta)),
-        paste("- Total samples in Group 2:", nrow(group2_meta)),
+        if (identical(analysis_data$kind, "survival"))
+          paste("- Samples with follow-up:", nrow(group1_meta))
+        else
+          paste("- Total samples in Group 1:", nrow(group1_meta)),
+        if (identical(analysis_data$kind, "survival")) NULL
+        else paste("- Total samples in Group 2:", nrow(group2_meta)),
+        skipped_text,
         filter_text,
         "",
         "Dataset Results:",
@@ -573,8 +712,10 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
             "- ", dataset, ": transform = ", res$transform,
             ", Effect Size = ", round(res$effect_size, 3),
             ", p-value = ", format(res$pvalue, scientific = TRUE, digits = 3),
-            ", n1 = ", res$n_group1,
-            ", n2 = ", res$n_group2,
+            if (identical(res$kind, "survival"))
+              paste0(", n = ", res$n_group1, ", events = ", res$n_group2)
+            else
+              paste0(", n1 = ", res$n_group1, ", n2 = ", res$n_group2),
             ", Unit type: ", res$data_type
           )
         }), collapse = "\n"),
