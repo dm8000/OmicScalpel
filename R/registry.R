@@ -11,6 +11,14 @@
 #   "many" -- decides its own set of datasets; ds is passed but ignored.
 
 MODULES <- list(
+  list(id = "ai_chat",              scope = "many", group = "Ask",
+       title = "Ask the data",      icon = "comments",
+       ui = "aiChatUI",             server = "aiChatServer",
+       pkgs = c("httr", "jsonlite"),
+       layout = list(left   = c("Scope"),
+                     center = c("Conversation"),
+                     right  = c("Cost"))),
+
   list(id = "data_summary",         scope = "many", group = "Explore",
        title = "Dataset summary",   icon = "table",
        ui = "dataSummaryUI",        server = "dataSummaryServer",

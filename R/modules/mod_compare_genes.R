@@ -93,7 +93,7 @@ compareGenesUI <- function(id) {
   )
 }
 
-compareGenesServer <- function(id, ds, meta, go_to = NULL) {
+compareGenesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     unit_reactive  <- reactiveVal("LogTMM")
     plot_obj       <- reactiveVal(NULL)
@@ -192,8 +192,12 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL) {
       cols
     })
     
-    plot_data_reactive <- eventReactive(input$plot, {
-      req(ds(), input$genes)
+    # The human button and the question tab reach the plot by the same path:
+    # os_ai_gate() counts both, so nothing here has to know which one asked.
+    draw <- os_ai_gate(id, input, ai, session, button = "plot")
+
+    plot_data_reactive <- eventReactive(draw(), {
+      req(draw() > 0, ds(), input$genes)
       sel_meta <- meta() %>% filter(dataset == ds())
 
       # No condition chosen is a legitimate question -- "what do these genes

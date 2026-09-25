@@ -55,7 +55,7 @@ exportMatrixUI <- function(id) {
   )
 }
 
-exportMatrixServer <- function(id, ds, meta, go_to = NULL) {
+exportMatrixServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     observeEvent(ds(), {
       dataset <- ds()

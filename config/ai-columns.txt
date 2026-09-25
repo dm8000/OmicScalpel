@@ -1,0 +1,43 @@
+# What a metadata column means, in words a question can be matched against.
+#
+# This file exists because the spreadsheet is not uniform and no model can
+# guess its way out of that: body mass index lives in BMI, bmi and BMI.25_80;
+# sex in Sex (Female/Male) and DEMO.Sex (female/male); obesity in
+# Obesity.status, which spells three concepts five ways.
+#
+# A column missing from here still gets offered, described by its own name,
+# type and levels. Adding a line only makes the match better.
+#
+# Format:  <column> | <description>
+
+BMI              | body mass index, a continuous measure of adiposity and obesity in humans
+bmi              | body mass index, a continuous measure of adiposity and obesity in humans
+BMI.25_80        | body mass index already split in two at 25.8
+Obesity.status   | whether the subject is lean, overweight or obese
+Condition.6      | whether the patient is lean or obese
+Sex              | the sex of the subject, female or male
+DEMO.Sex         | the sex of the subject, female or male (demonstration data)
+Age              | the age of the subject; years in human datasets, months in mouse ones
+Age.Class        | whether the animal is old or young
+Diet             | the diet the animal was fed, chow or high fat
+Cold.exposure    | the ambient temperature the animal was kept at
+diabetes.status  | whether the subject is diabetic
+Is.athlete       | whether the subject is an athlete
+Lineage          | the cell line or genetic background of the sample
+Differentiation.day | how many days the cells were differentiated for
+Treatment.day    | the day of treatment the sample was taken on
+CL_knockout      | the knockout and treatment combination of the animal
+Mirabegron.treatment | the mirabegron treatment arm
+Surgery          | the surgical procedure the tissue came from
+WHR              | waist to hip ratio, a measure of fat distribution
+HDL              | high density lipoprotein cholesterol
+TG               | triglycerides
+fat.percentage   | percentage of body mass that is fat
+lean.percentage  | percentage of body mass that is lean
+DEMO.OS.time     | follow-up time until death or censoring (demonstration data)
+DEMO.OS.event    | whether the subject died during follow-up (demonstration data)
+DEMO.OS2.time    | follow-up time for the second demonstration marker
+DEMO.OS2.event   | whether the event happened, for the second demonstration marker
+DEMO.Marker      | a synthetic continuous marker (demonstration data)
+DEMO.Marker2     | a second synthetic continuous marker whose cutpoint differs by sex
+DEMO.Responder   | whether the subject responded (demonstration data)

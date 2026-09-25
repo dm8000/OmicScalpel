@@ -5,6 +5,12 @@
 #
 # Checks the arithmetic against answers worked out independently, not against
 # whatever the function happens to return.
+#
+# This test used to reach adjusted_effect() by slicing mod_meta_analysis.R and
+# eval()ing the slice, so it never opened a session -- and the tab's gene
+# lookup was broken the whole time it passed. The functions now live in
+# R/meta_stats.R, and the session-level check is in
+# tools/behaviour/meta_analysis_forest.R.
 
 source("global.R")
 source("tools/behaviour/_fixture.R")
@@ -14,12 +20,6 @@ n <- 0L
 ok  <- function(w) { n <<- n + 1L; cat("  ok  ", w, "\n", sep = "") }
 no  <- function(w, ...) { cat("FAIL  ", w, ": ", ..., "\n", sep = ""); quit(status = 1) }
 chk <- function(c, w, ...) if (isTRUE(c)) ok(w) else no(w, ...)
-
-# reach the function without starting a session
-src <- readLines("R/modules/mod_meta_analysis.R")
-i0  <- grep("^    adjusted_effect <- function", src)[1]
-i1  <- grep("^    perform_analysis <- eventReactive", src)[1] - 1
-eval(parse(text = paste(gsub("^    ", "", src[i0:i1]), collapse = "\n")))
 
 set.seed(11)
 

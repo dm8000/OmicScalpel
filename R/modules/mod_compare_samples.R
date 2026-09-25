@@ -96,7 +96,7 @@ compareSamplesUI <- function(id) {
   )
 }
 
-compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
+compareSamplesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     unit_reactive <- reactiveVal(NULL)
     plot_obj      <- reactiveVal(NULL)
@@ -165,21 +165,38 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
     })
     outputOptions(output, "colorpicker_ui", suspendWhenHidden = FALSE)
     
+    # Which groups there are, and in which order. The rank list is the
+    # researcher's answer when it has one; before the browser has drawn it --
+    # on first load, and for anything the question tab sets -- the data itself
+    # is. Everything that needs the order asks here, so the plot and its
+    # colours cannot disagree about it.
+    group_order <- reactive({
+      g <- input$visible_conditions
+      if (length(g)) return(g)
+      df <- tryCatch(plot_data_reactive(), error = function(e) NULL)
+      if (is.null(df)) character(0) else unique(as.character(df$CombinedCondition))
+    })
+
     reactive_palette <- reactive({
-      req(input$visible_conditions)
-      cols <- sapply(seq_along(input$visible_conditions), function(i) {
+      groups <- group_order()
+      req(length(groups) > 0)
+      cols <- sapply(seq_along(groups), function(i) {
         inpt <- input[[paste0("color_",i)]]
         if (is.null(inpt)) {
-          d <- os_palette(max(length(input$visible_conditions), 1))
+          d <- os_palette(max(length(groups), 1))
           if (i <= length(d)) d[i] else "#CCCCCC"
         } else inpt
       })
-      names(cols) <- input$visible_conditions
+      names(cols) <- groups
       cols
     })
     
-    plot_data_reactive <- eventReactive(input$plot, {
-      req(ds(), input$genes)
+    # The human button and the question tab reach the plot by the same path:
+    # os_ai_gate() counts both, so nothing here has to know which one asked.
+    draw <- os_ai_gate(id, input, ai, session, button = "plot")
+
+    plot_data_reactive <- eventReactive(draw(), {
+      req(draw() > 0, ds(), input$genes)
       sel_meta <- meta() %>% filter(dataset == ds())
 
       # No condition chosen is a legitimate question -- "what do these genes
@@ -238,8 +255,14 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL) {
     generate_plot <- reactive({
       df <- plot_data_reactive()
       req(df)
-      df <- df[df$CombinedCondition %in% input$visible_conditions, ]
-      df$CombinedCondition <- factor(df$CombinedCondition, levels = input$visible_conditions)
+      # The rank list has no update*() and reports only once the browser has
+      # drawn it, so with it empty `%in% NULL` was all FALSE and the tab drew an
+      # empty frame -- on first load, and for any plan that sets the other
+      # controls. compare_genes already falls back this way.
+      order_ <- group_order()
+      if (!length(order_)) order_ <- unique(as.character(df$CombinedCondition))
+      df <- df[df$CombinedCondition %in% order_, ]
+      df$CombinedCondition <- factor(df$CombinedCondition, levels = order_)
       pal <- reactive_palette()
       
       y_lab_full <- if(input$log2_transform)

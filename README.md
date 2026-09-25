@@ -9,6 +9,12 @@ follows it.
 
 ## The tabs
 
+**Ask**
+
+| tab | what it does |
+|---|---|
+| Ask the data | Ask a scientific question in words. The tab classifies it with Jev (typesafe.ai) into typed answers -- organism, tissue, variable, gene, what kind of comparison -- then a decision tree in `R/ai_plan.R` filters the catalog, checks the gene is really in the matrices, picks the tool that fits and fills in its controls. The answer is a button that opens the finished plot in that tab, plus the search path it took. No model writes code or chooses a tool. A question that nothing can answer comes back with the criteria it searched on and where the last dataset was lost. |
+
 **Explore**
 
 | tab | what it does |

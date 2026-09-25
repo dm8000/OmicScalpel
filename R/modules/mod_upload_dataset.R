@@ -47,7 +47,7 @@ uploadDatasetUI <- function(id) {
   )
 }
 
-uploadDatasetServer <- function(id, ds, meta, go_to = NULL) {
+uploadDatasetServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     
     runjs <- function(code) {

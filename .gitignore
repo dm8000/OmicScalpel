@@ -9,6 +9,11 @@ config/config.txt
 # Generated from config/config.txt by tools/sync-renviron.R — never edit by hand.
 .Renviron
 
+# API keys. Never versioned: this repository is public, and a key in the working
+# tree is one `git add -A` away from being in it. Copy apikeys.txt.example.
+apikeys.txt
+*.key
+
 # R session leftovers
 .Rhistory
 .RData

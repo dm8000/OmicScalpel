@@ -84,7 +84,7 @@ metaAnalysisUI <- function(id) {
   )
 }
 
-metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
+metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     negative_cache <- new.env()
     
@@ -131,13 +131,25 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
       if (!is.null(metadata())) {
         exclude_cols <- c("TsengID", "SampleID", "dataset", "Data.type")
         condition_choices <- setdiff(names(metadata()), exclude_cols)
-        updateSelectInput(session, "condition", choices = condition_choices)
-        updateSelectInput(session, "filter_conditions", choices = condition_choices)
+        # Keep whatever is selected. Passing choices without selected resets
+        # the box to the first column, and this observer re-runs on every
+        # metadata change -- so saving in another tab silently threw away the
+        # condition the researcher had picked, and it undid anything the Ask
+        # tab set here.
+        keep_cond <- isolate(input$condition)
+        updateSelectInput(session, "condition", choices = condition_choices,
+                          selected = if (!is.null(keep_cond) &&
+                                         keep_cond %in% condition_choices) keep_cond)
+        keep_filter <- isolate(input$filter_conditions)
+        updateSelectInput(session, "filter_conditions", choices = condition_choices,
+                          selected = intersect(keep_filter, condition_choices))
         # the same columns can be adjusted for, minus the one being compared:
         # putting the grouping variable in the model would explain the effect
         # away by construction
+        keep_adj <- isolate(input$adjust_for)
         updateSelectInput(session, "adjust_for",
-                          choices = setdiff(condition_choices, input$condition))
+                          choices = setdiff(condition_choices, input$condition),
+                          selected = intersect(keep_adj, condition_choices))
       }
     })
     
@@ -292,29 +304,6 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
       ))
     }
     
-    calculate_cohens_d <- function(group1_values, group2_values) {
-      n1 <- length(group1_values)
-      n2 <- length(group2_values)
-      
-      if (n1 < 2 || n2 < 2) {
-        return(list(d = NA, se = NA))
-      }
-      
-      mean1 <- mean(group1_values, na.rm = TRUE)
-      mean2 <- mean(group2_values, na.rm = TRUE)
-      sd1 <- sd(group1_values, na.rm = TRUE)
-      sd2 <- sd(group2_values, na.rm = TRUE)
-      
-      pooled_sd <- sqrt(((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / (n1 + n2 - 2))
-      if (pooled_sd == 0) {
-        return(list(d = 0, se = 0))
-      }
-      
-      cohens_d <- (mean2 - mean1) / pooled_sd
-      se_d <- sqrt((n1 + n2) / (n1 * n2) + cohens_d^2 / (2 * (n1 + n2 - 2)))
-      
-      return(list(d = cohens_d, se = se_d))
-    }
     
     # ---- adjusted effect ------------------------------------------------
     #
@@ -334,57 +323,13 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
     # The p-value comes from the same model. Using the unadjusted t-test
     # beside an adjusted effect would report a test of a different hypothesis.
 
-    adjusted_effect <- function(expr, group, covars) {
-      df <- data.frame(expr = expr, group = factor(group, levels = c("g1", "g2")))
-      usable <- character(0)
 
-      for (nm in names(covars)) {
-        v <- covars[[nm]]
-        num <- suppressWarnings(as.numeric(as.character(v)))
-        v <- if (mean(!is.na(num)) > 0.8) num else factor(as.character(v))
-        # A covariate that does not vary in this dataset explains nothing and
-        # makes the model rank-deficient. Dropped here, reported to the user.
-        if (length(unique(v[!is.na(v)])) < 2) next
-        df[[nm]] <- v
-        usable <- c(usable, nm)
-      }
+    # The human button and the question tab reach the plot by the same path:
+    # os_ai_gate() counts both, so nothing here has to know which one asked.
+    draw <- os_ai_gate(id, input, ai, session, button = "generate_plot")
 
-      keep <- stats::complete.cases(df)
-      df   <- df[keep, , drop = FALSE]
-      if (nlevels(droplevels(df$group)) < 2) return(NULL)
-      if (sum(df$group == "g1") < 2 || sum(df$group == "g2") < 2) return(NULL)
-
-      # one parameter per covariate level, plus the intercept and the group
-      n_par <- 2 + sum(vapply(usable, function(nm) {
-        v <- df[[nm]]; if (is.factor(v)) nlevels(droplevels(v)) - 1 else 1
-      }, numeric(1)))
-      if (nrow(df) <= n_par + 1) return(NULL)
-
-      fml <- stats::as.formula(
-        paste("expr ~ group", if (length(usable)) paste("+", paste(usable, collapse = " + ")) else "")
-      )
-      fit <- tryCatch(stats::lm(fml, data = df), error = function(e) NULL)
-      if (is.null(fit)) return(NULL)
-
-      co <- tryCatch(summary(fit)$coefficients, error = function(e) NULL)
-      if (is.null(co) || !("groupg2" %in% rownames(co))) return(NULL)
-
-      resid_sd <- stats::sigma(fit)
-      if (!is.finite(resid_sd) || resid_sd == 0) return(NULL)
-
-      list(
-        d       = unname(co["groupg2", "Estimate"]) / resid_sd,
-        se      = unname(co["groupg2", "Std. Error"]) / resid_sd,
-        pvalue  = unname(co["groupg2", "Pr(>|t|)"]),
-        used    = usable,
-        dropped = setdiff(names(covars), usable),
-        n1      = sum(df$group == "g1"),
-        n2      = sum(df$group == "g2")
-      )
-    }
-
-    perform_analysis <- eventReactive(input$generate_plot, {
-      req(input$biomolecule, input$condition, metadata())
+    perform_analysis <- eventReactive(draw(), {
+      req(draw() > 0, input$biomolecule, input$condition, metadata())
       
       meta_all <- metadata()
       
@@ -423,9 +368,23 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
       results <- list()
       for (dataset in datasets) {
         data_info <- tryCatch(load_expression(dataset, input$data_preference), error = function(e) NULL)
-        if (is.null(data_info)) next
-        
-        if (!input$biomolecule %in% rownames(data_info)) next
+        if (is.null(data_info) || !"Symbol" %in% names(data_info)) next
+
+        # The legacy app read the matrix with row.names = 1, so the symbols were
+        # the row names and the lookup below worked. load_expression() keeps them
+        # in a Symbol column and leaves the row names as "1","2",... -- and this
+        # loop kept the rownames test through the conversion, so every dataset
+        # was skipped and the forest plot came back empty for every gene.
+        # Dropping the column also matters: quick_negative_check() samples
+        # data_info[1:n, 1:m] as numbers, and column 1 was gene names.
+        rownames(data_info) <- make.unique(as.character(data_info$Symbol))
+        data_info$Symbol <- NULL
+
+        # Human matrices spell it UCP1 and mouse ones Ucp1. A meta-analysis
+        # pools both, so one typed symbol has to find either.
+        row_i <- match(toupper(input$biomolecule), toupper(rownames(data_info)))
+        if (is.na(row_i)) next
+        gene_row <- rownames(data_info)[row_i]
         
         dataset_group1 <- group1_samples[group1_samples$dataset == dataset, ]
         dataset_group2 <- group2_samples[group2_samples$dataset == dataset, ]
@@ -435,8 +394,8 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
         available_samples2 <- intersect(dataset_group2$SampleID, colnames(data_info))
         if (length(available_samples1) < 2 || length(available_samples2) < 2) next
         
-        group1_expr <- as.numeric(data_info[input$biomolecule, available_samples1])
-        group2_expr <- as.numeric(data_info[input$biomolecule, available_samples2])
+        group1_expr <- as.numeric(data_info[gene_row, available_samples1])
+        group2_expr <- as.numeric(data_info[gene_row, available_samples2])
         
         has_negative <- quick_negative_check(data_info, dataset)
         

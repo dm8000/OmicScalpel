@@ -1,0 +1,8 @@
+# Copy to apikeys.txt and fill in. apikeys.txt is gitignored and must stay that way.
+#
+# The app reads the environment first: if TYPESAFE_API_KEY is set, this file is
+# not consulted at all. On the HPC, prefer the environment.
+#
+# One key per line, "<name> = <value>".
+
+Jev = apikey_PUT_YOURS_HERE

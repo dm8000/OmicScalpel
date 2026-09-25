@@ -45,7 +45,7 @@ dataSummaryUI <- function(id) {
   )
 }
 
-dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
+dataSummaryServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     data_folder <- os_path("hubdata")
     backup_dir  <- os_path("backups")

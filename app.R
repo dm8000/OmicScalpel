@@ -133,9 +133,15 @@ server <- function(input, output, session) {
     if (!is.null(tab)) updateTabsetPanel(session, "tabs", selected = tab)
   }
 
+  # What the question tab publishes and the analysis tabs listen for: one plan
+  # at a time, naming the tab it is for. It sits beside active_dataset for the
+  # same reason -- it is shared state, and no module owns it.
+  ai_plan <- reactiveVal(NULL)
+
   for (m in MODULES) {
     if (!exists(m$server, mode = "function")) next
-    get(m$server)(m$id, ds = active_dataset, meta = shared_meta, go_to = go_to)
+    get(m$server)(m$id, ds = active_dataset, meta = shared_meta, go_to = go_to,
+                  ai = ai_plan)
   }
 }
 

@@ -38,11 +38,20 @@ edit them**.
 ## Module contract
 
     <name>UI     <- function(id)
-    <name>Server <- function(id, ds, meta, go_to = NULL)
+    <name>Server <- function(id, ds, meta, go_to = NULL, ai = NULL)
 
 `ds` is the active dataset (a reactiveVal), `meta` the shared metadata
-(a reactive), `go_to(tab, dataset)` switches tab and dataset. Register it in
-`R/registry.R`; nothing else needs to know.
+(a reactive), `go_to(tab, dataset)` switches tab and dataset, `ai` is the plan
+the Ask tab publishes. Register it in `R/registry.R`; nothing else needs to know.
+
+A module the Ask tab can drive declares its controls in `R/ai_tools.R` and
+routes its draw button through `os_ai_gate()`:
+
+    draw <- os_ai_gate(id, input, ai, session, button = "plot")
+    ...  req(draw() > 0)
+
+The human button keeps working exactly as before; `tools/lint_ai_tools.R`
+fails if the declared control ids are not in that module's UI.
 
 ## Before committing a change to a module
 

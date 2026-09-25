@@ -19,11 +19,13 @@ ok  <- function(w) { n <<- n + 1L; cat("  ok  ", w, "\n", sep = "") }
 no  <- function(w, ...) { cat("FAIL  ", w, ": ", ..., "\n", sep = ""); quit(status = 1) }
 chk <- function(c, w, ...) if (isTRUE(c)) ok(w) else no(w, ...)
 
-# Reading an output renders it. The tab once shipped a survival result whose
+# Reading an output renders it. Named renders(), not draw(): the modules now
+# have a reactive called draw, and inside testServer the module's environment
+# wins. The tab once shipped a survival result whose
 # two plot panels both read "Error: is.character(txt) is not TRUE", because a
 # validate() on the happy path threw before any plot was drawn -- invisible to
 # a test that only reads reactives.
-draw <- function(out, what) {
+renders <- function(out, what) {
   r <- tryCatch(out, error = function(e) conditionMessage(e))
   if (is.character(r)) no(what, r)
   if (is.null(r)) no(what, "nothing was rendered")
@@ -94,9 +96,9 @@ chk(grepl("DEMO.Marker", r$name, fixed = TRUE) && grepl("\\d", r$name),
 testServer(cutoffFinderServer,
            args = list(ds = reactiveVal(DS), meta = reactive(big), go_to = NULL), {
   do.call(session$setInputs, modifyList(surv_inputs, list(perm = 0)))
-  draw(output$scan_plot,    "the cutpoint scan renders")
-  draw(output$outcome_plot, "the Kaplan-Meier renders")
-  draw(output$result,       "the result table renders")
+  renders(output$scan_plot,    "the cutpoint scan renders")
+  renders(output$outcome_plot, "the Kaplan-Meier renders")
+  renders(output$result,       "the result table renders")
 })
 
 # --- the floor on group size -------------------------------------------------
@@ -178,9 +180,9 @@ chk(length(half$found$groups) == 1 && half$found$groups[[1]]$label == "female",
 testServer(cutoffFinderServer,
            args = list(ds = reactiveVal(DS), meta = reactive(spl), go_to = NULL), {
   do.call(session$setInputs, split_inputs)
-  draw(output$scan_plot,    "a split draws one scan panel per group")
-  draw(output$outcome_plot, "and one Kaplan-Meier per group")
-  draw(output$result,       "and reports each group separately")
+  renders(output$scan_plot,    "a split draws one scan panel per group")
+  renders(output$outcome_plot, "and one Kaplan-Meier per group")
+  renders(output$result,       "and reports each group separately")
 })
 
 # --- expression as the variable ----------------------------------------------

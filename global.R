@@ -41,8 +41,14 @@ if (length(MODULE_PKG_MISSING)) {
 }
 
 source("R/ui_helpers.R")
+source("R/meta_stats.R")
 source("R/cutoff_finder.R")
 source("R/cutoff_plots.R")
+source("R/jev.R")
+source("R/ai_catalog.R")
+source("R/ai_genes.R")
+source("R/ai_tools.R")
+source("R/ai_plan.R")
 source("R/data_io.R")
 
 # One look for every figure, set once rather than asked for per plot.

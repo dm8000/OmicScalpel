@@ -45,6 +45,8 @@ step "no control was lost in conversion" Rscript tools/lint_parity.R
 
 step "three-column layout" Rscript tools/lint_layout.R
 
+step "the machine interface matches the GUI" Rscript tools/lint_ai_tools.R
+
 step "dplyr masking" sh -c '
   Rscript tools/lint_masking.R app.R R/*.R R/modules/*.R 2>/dev/null &&
   echo "no verb compares a column with itself"'
@@ -54,6 +56,14 @@ step "the linter can still fail" sh -c '
      || Rscript tools/lint_ns.R --single-dataset export-matrix/app.R >/dev/null 2>&1; then
     echo "lint_ns.R passed an unconverted app; it is not checking anything"; exit 1
   fi; echo "it still rejects an unconverted app"'
+
+step "no secret is tracked" sh -c '
+  if git ls-files --error-unmatch apikeys.txt >/dev/null 2>&1; then
+    echo "apikeys.txt is tracked -- remove it from the index and rotate the key"; exit 1
+  fi
+  hits=$(git ls-files -z | xargs -0 grep -l -I -E "apikey_[A-Za-z0-9]{8}|sk-[A-Za-z0-9]{20}" 2>/dev/null)
+  if [ -n "$hits" ]; then echo "a key is in a tracked file:"; echo "$hits"; exit 1; fi
+  echo "no key in the index"'
 
 step "fixtures carry no real identifier" Rscript tools/testdata/check_fixtures.R
 step "the namespace linter itself" sh -c 'cd tools && sh testdata/check_lint.sh'

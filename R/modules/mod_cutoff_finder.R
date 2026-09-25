@@ -134,7 +134,7 @@ cutoffFinderUI <- function(id) {
   )
 }
 
-cutoffFinderServer <- function(id, ds, meta, go_to = NULL) {
+cutoffFinderServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
 
     # --- which columns can play which part -----------------------------------
@@ -341,7 +341,12 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL) {
 
     # eventReactive, so nothing scans while the researcher is still choosing:
     # a permutation run is seconds of CPU per group and must be asked for.
-    found <- eventReactive(input$find, {
+    # The human button and the question tab reach the plot by the same path:
+    # os_ai_gate() counts both, so nothing here has to know which one asked.
+    draw <- os_ai_gate(id, input, ai, session, button = "find")
+
+    found <- eventReactive(draw(), {
+      req(draw() > 0)
       md <- sel_meta()
       vv <- variable()
       st <- strata()
@@ -426,23 +431,23 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL) {
         if (!is.null(g$error)) {
           return(tagList(head, tags$div(class = "text-warning", g$error)))
         }
-        rows <- list(cf_row("Cutoff", format(round(g$cutoff, 3))),
-                     cf_row("Samples", paste0("low ", g$n_low, " / high ", g$n_high)))
+        rows <- list(os_kv_row("Cutoff", format(round(g$cutoff, 3))),
+                     os_kv_row("Samples", paste0("low ", g$n_low, " / high ", g$n_high)))
         if (!identical(g$method, "distribution")) {
           eff <- attr(g$scan, "effect_name")
           rows <- c(rows, list(
-            cf_row(paste0(eff, " (95% CI)"),
+            os_kv_row(paste0(eff, " (95% CI)"),
                    sprintf("%.2f (%.2f - %.2f)", g$best$effect, g$best$lower,
                            g$best$upper)),
-            cf_row("p at the best cutoff", format.pval(g$best$pvalue, digits = 3)),
-            cf_row("p, permutation-corrected",
+            os_kv_row("p at the best cutoff", format.pval(g$best$pvalue, digits = 3)),
+            os_kv_row("p, permutation-corrected",
                    if (is.na(g$perm$p)) "not run"
                    else sprintf("%.3f  (%d permutations)", g$perm$p, g$perm$B))))
           if (identical(g$method, "binary")) {
             rows <- c(rows, list(
-              cf_row("Sensitivity / specificity",
+              os_kv_row("Sensitivity / specificity",
                      sprintf("%.2f / %.2f", g$best$sensitivity, g$best$specificity)),
-              cf_row("AUC", sprintf("%.3f", g$auc))))
+              os_kv_row("AUC", sprintf("%.3f", g$auc))))
           }
         }
         tagList(head, tags$table(class = "table table-condensed", tags$tbody(rows)))
@@ -451,8 +456,8 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL) {
       tagList(
         if (!is.null(f$var))
           tags$table(class = "table table-condensed", tags$tbody(
-            cf_row("Variable", f$var$name),
-            if (split) cf_row("Split by", f$split))),
+            os_kv_row("Variable", f$var$name),
+            if (split) os_kv_row("Split by", f$split))),
         blocks,
         if (any(vapply(f$groups, function(g) !identical(g$method, "distribution") &&
                                              is.null(g$error), logical(1))))
@@ -509,11 +514,6 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL) {
 }
 
 # --- small shared pieces, outside the server ---------------------------------
-
-cf_row <- function(label, value) {
-  htmltools::tags$tr(htmltools::tags$td(htmltools::tags$strong(label)),
-                     htmltools::tags$td(value))
-}
 
 # The groups that produced a cutoff. A group that refused is still reported,
 # but it has nothing to plot or save.

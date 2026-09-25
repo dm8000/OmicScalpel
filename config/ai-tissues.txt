@@ -1,0 +1,17 @@
+# What each tissue value in the metadata is, as a family a question can name.
+#
+# Nine of eighteen datasets record no tissue at all, and GTEX records
+# "Subcutaneous" and "Visceral" rather than "Adipose". A search that filters on
+# the literal value therefore throws away most of the collection and then
+# reports, truthfully and uselessly, that it found nothing.
+#
+# A value missing from here is its own family.
+#
+# Format:  <value in the metadata> | <family> | <what it is>
+
+Adipose        | adipose | adipose tissue, no depot specified
+Subcutaneous   | adipose | subcutaneous white adipose tissue
+Visceral       | adipose | visceral white adipose tissue
+Adipose.brown  | adipose | brown adipose tissue
+BAT            | adipose | brown adipose tissue
+Plasma         | plasma  | blood plasma

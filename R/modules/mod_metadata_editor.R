@@ -72,7 +72,7 @@ metadataEditorUI <- function(id) {
   )
 }
 
-metadataEditorServer <- function(id, ds, meta, go_to = NULL) {
+metadataEditorServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     rv <- reactiveValues(
       data                = NULL,

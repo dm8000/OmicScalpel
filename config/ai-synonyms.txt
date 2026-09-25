@@ -1,0 +1,29 @@
+# Words a researcher uses for a gene, and the symbol the matrices carry.
+#
+# Jev cannot invent "LEP" from "leptin": it only chooses among options we hand
+# it. This file is how a protein name becomes a candidate symbol. Matching
+# against the symbol vocabulary itself (Genemetadata.xlsx) covers the rest.
+#
+# Format:  <term> | <SYMBOL>
+
+leptin        | LEP
+leptina       | LEP
+leptin receptor | LEPR
+adiponectin   | ADIPOQ
+adiponectina  | ADIPOQ
+ucp1          | UCP1
+uncoupling protein 1 | UCP1
+thermogenin   | UCP1
+insulin       | INS
+insulina      | INS
+insulin receptor | INSR
+glut4         | SLC2A4
+tnf alpha     | TNF
+interleukin 6 | IL6
+resistin      | RETN
+resistina     | RETN
+perilipin     | PLIN1
+ppar gamma    | PPARG
+prdm16        | PRDM16
+fgf21         | FGF21
+irisin        | FNDC5

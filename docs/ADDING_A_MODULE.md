@@ -23,7 +23,7 @@ myThingUI <- function(id) {
   )
 }
 
-myThingServer <- function(id, ds, meta, go_to = NULL) {
+myThingServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     observeEvent(ds(), {
       updateSelectInput(session, "unit", choices = list_units(ds()))

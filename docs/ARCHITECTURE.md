@@ -107,9 +107,59 @@ around read-modify-write (the `filelock` package, or an atomic rename) and is
 separate work. It was true of the nine separate apps too; merging them makes it
 easier to notice, not more likely.
 
+**readxl segfaults on Metadata.xlsx now and then.** Twice while this work was
+going on, `load_metadata()` brought the whole R process down inside
+`readxl::read_excel` with "memory not mapped" -- and the same file read cleanly
+twelve times out of twelve immediately afterwards, with and without the app's
+packages loaded. It is roughly two failures in fifteen, it predates any of this
+code, and a segfault cannot be caught from R, so scripts that must not die
+should be run in a shell loop that retries. It deserves its own investigation:
+first suspects are the readxl/tibble/vctrs versions in this library.
+
 **The metadata is a spreadsheet.** 2609 rows and 192 columns in an .xlsx that
 the interface rewrites in full on every save. It works, and it is why the
 backups exist.
+
+## Asking the data a question
+
+Four layers, one of which touches the network.
+
+    R/jev.R          the HTTP client for typesafe.ai; transport is injectable,
+                     so everything above it is testable offline and for free
+    R/ai_catalog.R   the hub reduced to what a decision needs: per dataset the
+                     species, tissue, type, units and which metadata columns
+                     are really filled in. About 3,000 tokens for 18 datasets.
+    R/ai_genes.R     the symbol vocabulary and the gene -> datasets index
+    R/ai_plan.R      the decision tree: typed answers + catalog -> a plan
+    R/ai_tools.R     which controls each tab exposes to a plan, and os_ai_gate()
+
+**Jev classifies; it does not generate.** It answers `noul` (is this true),
+`choice` (pick one of these, with a probability for each) and `score`
+(rate on this rubric) questions about a state, all in one request. So the model
+never names a tool or writes code: R hands it the options and reads back typed
+answers with confidences, and the tool is chosen by ordinary code that can be
+read and tested. `tools/behaviour/ai_plan.R` runs that whole tree with
+fabricated answers and no network.
+
+Three rules in `ai_filter_facet()` are not style, they are what this metadata
+forces:
+
+- **Silence is not a different answer.** Nine of eighteen datasets record no
+  tissue at all. A tissue filter that excluded them threw away most of the
+  collection and then truthfully reported finding nothing.
+- **An unsure answer excludes nothing.** "Does leptin expression increase with
+  BMI" was read as RNAseq at 59% confidence, which dropped a 770-sample
+  microarray dataset that had both the gene and the variable. The platform
+  filter now needs 80%.
+- **A depot is its tissue.** GTEX records "Subcutaneous" and "Visceral", not
+  "Adipose". `config/ai-tissues.txt` groups the values into families.
+
+And two about genes: the symbol vocabulary is `Genemetadata.xlsx` plus every
+symbol in the index, because that file holds 17,525 symbols while the GTEX
+matrix alone has 54,593; and matching is case-insensitive, because human
+matrices spell it `UCP1` and mouse ones `Ucp1`.
+
+`docs/JEV-COST.md` is measured, not estimated: about $0.0005 a question.
 
 ## Roadmap
 

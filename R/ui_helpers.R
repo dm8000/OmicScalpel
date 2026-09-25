@@ -84,6 +84,12 @@ os_layout <- function(left = NULL, center = NULL, right = NULL,
 # A section label inside a column, for grouping controls without a full panel.
 os_label <- function(text) tags$div(class = "os-section", text)
 
+# One label-and-value row of a result table. Shared, because two tabs now show
+# results this way and a third would have copied it again.
+os_kv_row <- function(label, value) {
+  tags$tr(tags$td(tags$strong(label)), tags$td(value))
+}
+
 # --- plot theme -------------------------------------------------------------
 #
 # The figures keep a white background on purpose: they are the exported

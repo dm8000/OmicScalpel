@@ -84,7 +84,7 @@ correlationUI <- function(id) {
   )
 }
 
-correlationServer <- function(id, ds, meta, go_to = NULL) {
+correlationServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
   moduleServer(id, function(input, output, session) {
     
     get_conditions_with_multiple_values <- function(ds_name) {
@@ -187,8 +187,12 @@ correlationServer <- function(id, ds, meta, go_to = NULL) {
       outputOptions(output, "sortable_conditions", suspendWhenHidden = FALSE)
     })
     
+    # The human button and the question tab reach the plot by the same path:
+    # os_ai_gate() counts both, so nothing here has to know which one asked.
+    draw <- os_ai_gate(id, input, ai, session, button = "plot")
+
     plot_reactive <- reactive({
-      req(input$plot, ds(), input$genes)
+      req(draw() > 0, ds(), input$genes)
       panels_needed <- if (is.null(input$conditions) || length(input$conditions)==0) {
         length(input$genes)
       } else {

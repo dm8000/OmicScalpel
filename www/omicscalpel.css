@@ -617,3 +617,40 @@ a:focus, input:focus, select:focus, textarea:focus {
 }
 .os-help:hover .os-help-box,
 .os-help-toggle:checked ~ .os-help-box { display: block; }
+
+/* --- the question tab ------------------------------------------------------ */
+
+.os-chat {
+  max-height: 58vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.os-chat-turn { margin-bottom: 18px; }
+
+.os-chat-q {
+  margin-left: 15%;
+  padding: 8px 12px;
+  background: var(--os-surface-2);
+  border: 1px solid var(--os-border-2);
+  border-radius: var(--os-radius);
+  color: var(--os-text);
+}
+.os-chat-a {
+  margin-right: 8%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--os-surface);
+  border: 1px solid var(--os-border);
+  border-left: 2px solid var(--os-accent);
+  border-radius: var(--os-radius);
+}
+.os-chat-head { margin: 0 0 10px 0; color: var(--os-text); }
+.os-chat-a .os-panel { margin-top: 12px; }
+.os-chat-a .btn { margin: 0 6px 6px 0; }
+
+.os-chat-entry {
+  margin-top: 12px;
+  border-top: 1px solid var(--os-border);
+  padding-top: 12px;
+}
+.os-chat-entry textarea { resize: vertical; }
