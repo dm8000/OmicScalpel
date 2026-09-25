@@ -1,0 +1,6 @@
+# Value in the metadata | family | what it is
+RNAseq            | RNAseq      | RNA sequencing of gene expression
+Array             | Microarray  | microarray of gene expression
+Microarray        | Microarray  | microarray of gene expression
+Signal.lipidomics | Lipidomics  | lipidomics: lipid species, not genes
+Proteomics        | Proteomics  | proteomics: proteins, not transcripts

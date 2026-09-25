@@ -25,6 +25,21 @@ AI_TOOLS <- list(
     draw = "plot"
   ),
 
+  across_datasets = list(
+    title = "Across datasets",
+    what  = "a gene's expression shown in each dataset separately, never compared between them",
+    scope = "many",
+    needs = c("genes"),
+    controls = list(
+      genes        = list(type = "selectize", multiple = TRUE),
+      datasets     = list(type = "checkboxgroup", multiple = TRUE),
+      split_col    = list(type = "select"),
+      housekeeping = list(type = "checkbox"),
+      log_y        = list(type = "checkbox")
+    ),
+    draw = "plot"
+  ),
+
   meta_analysis = list(
     title = "Meta-analysis",
     what  = "one gene across several datasets at once, as a forest plot",

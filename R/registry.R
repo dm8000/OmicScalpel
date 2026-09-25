@@ -51,6 +51,14 @@ MODULES <- list(
                      center = c("Facet Plot"),
                      right  = c("Labels", "Size adjustments", "Color selection", "Settings"))),
 
+  list(id = "across_datasets",      scope = "many", group = "Explore",
+       title = "Across datasets",   icon = "layer-group",
+       ui = "acrossDatasetsUI",     server = "acrossDatasetsServer",
+       pkgs = c("ggplot2", "patchwork"),
+       layout = list(left   = c("Genes", "Datasets", "Split"),
+                     center = c("Panels"),
+                     right  = c("Read this"))),
+
   list(id = "meta_analysis",        scope = "many", group = "Explore",
        title = "Meta-analysis",     icon = "tree",
        ui = "metaAnalysisUI",       server = "metaAnalysisServer",

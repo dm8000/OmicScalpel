@@ -161,9 +161,8 @@ correlationServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       req(length(units) > 0)
       unit <- units[1]
       updateTextInput(session, "y_axis_label", value = paste0("Expression (", unit, ")"))
-      tmm_data <- load_expression(ds(), unit)
       updateSelectizeInput(session, "genes",
-                           choices = unique(tmm_data$Symbol), server = TRUE)
+                           choices = os_gene_choices(ds(), unit), server = TRUE)
       vals <- get_numeric_columns_with_multiple_values(ds())
       output$numeric_column_select <- renderUI({
         if (length(vals) == 0) h4("No numeric columns…")

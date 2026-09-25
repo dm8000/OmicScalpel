@@ -107,6 +107,13 @@ around read-modify-write (the `filelock` package, or an atomic rename) and is
 separate work. It was true of the nine separate apps too; merging them makes it
 easier to notice, not more likely.
 
+**`validate()` in this app is jsonlite's, not shiny's.** `global.R` attaches
+jsonlite after shiny, so a bare `validate(need(...))` calls the JSON validator.
+`need(TRUE, msg)` returns NULL and it errors with "is.character(txt) is not
+TRUE"; `need(FALSE, msg)` returns the message, jsonlite says it is not JSON, and
+**the render carries on past the guard** -- which is the dangerous half. Every
+call is written `shiny::validate(...)` and `tools/verify.sh` fails on a bare one.
+
 **readxl segfaults on Metadata.xlsx now and then.** Twice while this work was
 going on, `load_metadata()` brought the whole R process down inside
 `readxl::read_excel` with "memory not mapped" -- and the same file read cleanly
@@ -160,6 +167,38 @@ matrix alone has 54,593; and matching is case-insensitive, because human
 matrices spell it `UCP1` and mouse ones `Ucp1`.
 
 `docs/JEV-COST.md` is measured, not estimated: about $0.0005 a question.
+
+## Expression values
+
+**One decimal, except below 0.1.** The matrices carried up to 18 decimal places
+-- `4945.053081999999` is the binary remainder of a float written as text, not
+precision. `os_round_expression()` in `R/data_io.R` is the rule and
+`tools/round-matrices.R` applied it to all 29 matrices, taking the hub from
+1.6 GB to 1.2 GB.
+
+A flat `round(x, 1)` is not safe on TPM: 4.5% of Rozen.BMI's non-zero values
+are below 0.05 and 330 of its genes would have become all zero, which reads as
+"not expressed" rather than "barely expressed". Below 0.1 the value keeps three
+significant digits instead. The upload tab applies the same rule through the
+same function, so the two entry points cannot drift.
+
+**One row, not the matrix.** `load_expression_row()` greps the rows it needs
+and checks the symbol that comes back is the one asked for. Measured on
+GTEX_adipose_TMM.txt (402 MB):
+
+| | before | after |
+|---|---|---|
+| forest plot, LEP against BMI | 35 s | 1.2 s |
+| filling a gene menu | 14 s, 530 MB | 0.08 s |
+| one gene's row | 14.1 s | 0.02 s |
+
+No byte-offset index: an index that goes stale returns a different gene's
+numbers and says nothing, which is worse than being slow.
+
+**Parallelism was not the answer.** Sixteen cores did sit idle while one worked,
+but the cause was reading whole matrices single-threaded. With the row read,
+eighteen datasets take 0.38 s to read and spreading that over eight cores saved
+0.13 s, so the fork went back out. Measured, not assumed.
 
 ## Roadmap
 

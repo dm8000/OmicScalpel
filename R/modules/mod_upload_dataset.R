@@ -634,10 +634,21 @@ uploadDatasetServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       }
       dir.create(data_folder, recursive = TRUE)
       
+      # Round on the way in, rather than copying the file as it came. The
+      # matrices already in the hub carried up to 18 decimal places -- float
+      # noise written as text -- and one house rule applied at both entry
+      # points (here and tools/round-matrices.R) is how it stays that way.
+      # os_write_rounded_matrix() falls back to a plain copy and says so if the
+      # file is not a matrix it understands, because refusing an upload over
+      # formatting would be worse than storing it as it is.
       for (file_name in names(rv$uploaded_data_files)) {
         source_path <- rv$uploaded_data_files[[file_name]]$path
         dest_path <- file.path(data_folder, file_name)
-        file.copy(source_path, dest_path, overwrite = TRUE)
+        res <- os_write_rounded_matrix(source_path, dest_path)
+        if (!isTRUE(res$rounded)) {
+          showNotification(paste0(file_name, " was stored as uploaded: ", res$why),
+                           type = "warning", duration = 8)
+        }
       }
       
       log_message("Adding new metadata from data upload")

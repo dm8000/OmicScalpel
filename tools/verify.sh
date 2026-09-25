@@ -47,6 +47,18 @@ step "three-column layout" Rscript tools/lint_layout.R
 
 step "the machine interface matches the GUI" Rscript tools/lint_ai_tools.R
 
+step "shiny is not masked" sh -c '
+  # global.R attaches jsonlite after shiny, so a bare validate() is jsonlite\'"'"'s
+  # -- it checks whether a string is valid JSON. A guard written as
+  # validate(need(...)) then either errors or, worse, lets the render carry on
+  # past it. Both happened here.
+  hits=$(grep -rn "[^:a-zA-Z._]validate(" R --include=*.R | grep -v "shiny::validate" \
+         | grep -v "^[^:]*:[0-9]*: *#" || true)
+  if [ -n "$hits" ]; then
+    echo "validate() here is jsonlite::validate; write shiny::validate:"; echo "$hits"; exit 1
+  fi
+  echo "no module calls a masked validate()"'
+
 step "dplyr masking" sh -c '
   Rscript tools/lint_masking.R app.R R/*.R R/modules/*.R 2>/dev/null &&
   echo "no verb compares a column with itself"'

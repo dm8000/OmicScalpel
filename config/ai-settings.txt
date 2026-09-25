@@ -1,0 +1,4 @@
+# Value in the metadata | family | what it is
+in vivo  | in vivo  | tissue taken from a living body
+in vitro | in vitro | cells grown in culture
+ex vivo  | ex vivo  | tissue kept alive outside the body

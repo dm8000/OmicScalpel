@@ -40,6 +40,13 @@ QUESTIONS <- list(
        q = "Isso muda entre os sexos?",
        after = "A expressao de leptina aumenta com o IMC no tecido adiposo humano?"),
 
+  # The three from the first real session. Two of them failed then, for want
+  # of an intent and a way to say "not".
+  list(level = 1, lang = "en", expect = "plot",
+       q = "is Leptin expressed in tissues other than adipose tissue?"),
+  list(level = 1, lang = "en", expect = "none",
+       q = "is UCP1 expressed in the stromal vascular fraction of adipose tissue?"),
+
   list(level = 4, lang = "en", expect = "none",
        q = "Is shh expression higher in the zebrafish brain after hypoxia?"),
   list(level = 4, lang = "pt", expect = "none",
@@ -234,7 +241,9 @@ md <- c(
   "## What \"as expected\" means",
   "",
   "The expected outcome is what the tab *should* do, which is not always a plot.",
-  "The two UCP1 questions are expected to come back as **ambiguous**: the catalog",
+  "The stromal vascular fraction question is expected to be **refused**: the",
+  "collection holds no such cell fraction, and saying so is the answer. The two",
+  "UCP1-and-age questions are expected to come back as **ambiguous**: the catalog",
   "holds `Age`, `Age.Class` and `Differentiation.day`, the model spreads its",
   "probability across them, and the tab asks which was meant instead of picking",
   "one and drawing a plausible wrong answer. The zebrafish questions are expected",

@@ -184,6 +184,68 @@ p12 <- ai_decide(utils::modifyList(vague, list(followup = choice("new"))),
                  CAT, GENES[0, ], index = INDEX, previous = p1)
 chk(isFALSE(p12$ok), "but a question announced as new inherits nothing")
 
+# --- "is this expressed here?" ------------------------------------------------
+# The commonest question there is, and the one the intent list did not have.
+# Both of the questions that failed in use were this, and the model was forced
+# to answer `catalog` -- once at 0.40 confidence, which the tab reported as "I
+# could not tell what kind of question this is".
+pe <- plan_of(intent = choice("expression_level"), variable = choice("none"))
+chk(isTRUE(pe$ok) && identical(pe$tab, "across_datasets"),
+    "asking whether a gene is expressed goes to Across datasets", pe$tab)
+chk(identical(pe$controls$genes, "LEP") && isTRUE(pe$controls$housekeeping),
+    "with the gene and the housekeeping ruler",
+    paste(names(pe$controls), collapse = ", "))
+chk(length(pe$controls$datasets) == length(pe$datasets) && length(pe$datasets) > 1,
+    "and every dataset that carries it, each on its own",
+    length(pe$datasets))
+chk(grepl("not comparable", paste(vapply(pe$trace, function(s) s$detail, character(1)),
+                                  collapse = " ")),
+    "the trace says the datasets are not comparable with each other")
+
+# --- leaving something out ----------------------------------------------------
+# "tissues other than adipose" cannot be said with a positive choice. Asked
+# which tissue the question was about, the model answered "adipose" at 0.16 --
+# correctly unsure, because the honest answer was not on offer.
+px <- ai_decide(answers(intent = choice("expression_level"), variable = choice("none"),
+                        tissue = choice("any"), exclude = choice("tissue:adipose")),
+                CAT, GENES, index = INDEX)
+chk(isTRUE(px$ok) && identical(px$tab, "across_datasets"),
+    "excluding a tissue still produces a plot", px$headline)
+chk(!"HumanA" %in% px$datasets && !"HumanC" %in% px$datasets,
+    "and the adipose datasets are the ones left out",
+    paste(px$datasets, collapse = ", "))
+chk(any(grepl("^Not ", vapply(px$trace, function(s) s$step, character(1)))),
+    "with the exclusion named in the trace")
+
+# An exclusion the model is unsure of excludes nothing, like every other filter.
+px2 <- ai_decide(answers(intent = choice("expression_level"), variable = choice("none"),
+                         exclude = choice("tissue:adipose", conf = 0.3)),
+                 CAT, GENES, index = INDEX)
+chk(length(px2$datasets) > length(px$datasets),
+    "an unsure exclusion leaves the data alone",
+    length(px2$datasets), " vs ", length(px$datasets))
+
+# --- a facet the collection does not have -------------------------------------
+# "the stromal vascular fraction" is a cell fraction nobody here collected.
+# Saying so is the answer; picking the nearest cell type would not be.
+pc <- plan_of(intent = choice("expression_level"), variable = choice("none"),
+              cell_type = choice("other"))
+chk(isFALSE(pc$ok), "a cell fraction the collection lacks is refused, not approximated")
+
+# --- a facet added without touching code --------------------------------------
+# config/ai-facets.txt is the list. This is the check that it really is.
+spec <- ai_facet_spec()
+chk(all(c("species", "tissue", "cell_type", "region", "measurement", "setting")
+        %in% names(spec)),
+    "every facet in config/ai-facets.txt is loaded",
+    paste(names(spec), collapse = ", "))
+qs <- ai_questions(CAT, "does LEP track BMI?", GENES)
+chk(all(c("species", "tissue") %in% names(qs)),
+    "and each one with values in the catalog becomes a question",
+    paste(names(qs), collapse = ", "))
+chk(!"setting" %in% names(qs),
+    "while a facet no dataset records is not asked about at all")
+
 # --- nothing matches ----------------------------------------------------------
 
 # LEPR is a candidate the question could have meant, and no dataset carries it.

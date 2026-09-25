@@ -63,10 +63,11 @@ exportMatrixServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       updateSelectInput(session, "file_unit", choices = units)
       
       if (length(units) > 0) {
-        expr <- load_expression(dataset, units[1])
         # server = TRUE: the biggest matrix here has 54,000 genes and shipping them
-        # all to the browser is what makes selectize warn and the tab crawl
-        updateSelectizeInput(session, "genes_list", choices = expr$Symbol,
+        # all to the browser is what makes selectize warn and the tab crawl.
+        # The names come from the gene index, not from reading the matrix.
+        updateSelectizeInput(session, "genes_list",
+                             choices = os_gene_choices(dataset, units[1]),
                              server = TRUE)
         
         current_samples <- colnames(expr)[-1]

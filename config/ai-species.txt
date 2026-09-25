@@ -1,0 +1,5 @@
+# Value in the metadata | family | what it is
+HSA      | HSA      | human
+Mmu      | Mmu      | mouse
+Rno      | Rno      | rat
+Elephant | Elephant | elephant (demonstration data)

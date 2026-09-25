@@ -132,10 +132,8 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       })
       
       find_expr_path()
-      expr_tbl  <- load_expression(ds(), unit_reactive())
-      
       updateSelectizeInput(session, "genes",
-                           choices = expr_tbl$Symbol,
+                           choices = os_gene_choices(ds(), unit_reactive()),
                            server  = TRUE)
     })
     

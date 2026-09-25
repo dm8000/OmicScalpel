@@ -367,24 +367,19 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       
       results <- list()
       for (dataset in datasets) {
-        data_info <- tryCatch(load_expression(dataset, input$data_preference), error = function(e) NULL)
-        if (is.null(data_info) || !"Symbol" %in% names(data_info)) next
-
-        # The legacy app read the matrix with row.names = 1, so the symbols were
-        # the row names and the lookup below worked. load_expression() keeps them
-        # in a Symbol column and leaves the row names as "1","2",... -- and this
-        # loop kept the rownames test through the conversion, so every dataset
-        # was skipped and the forest plot came back empty for every gene.
-        # Dropping the column also matters: quick_negative_check() samples
-        # data_info[1:n, 1:m] as numbers, and column 1 was gene names.
+        # One row, not the matrix. Reading GTEX in full to reach one gene cost
+        # 14 seconds and 530 MB; this costs 0.02 s and returns the same numbers.
+        # Human matrices spell it UCP1 and mouse ones Ucp1, so both spellings
+        # are tried -- a meta-analysis pools species.
+        want <- unique(c(input$biomolecule, toupper(input$biomolecule),
+                         paste0(toupper(substr(input$biomolecule, 1, 1)),
+                                tolower(substring(input$biomolecule, 2)))))
+        data_info <- tryCatch(load_expression_row(dataset, want, input$data_preference),
+                              error = function(e) NULL)
+        if (is.null(data_info) || !nrow(data_info)) next
+        gene_row <- data_info$Symbol[1]
         rownames(data_info) <- make.unique(as.character(data_info$Symbol))
         data_info$Symbol <- NULL
-
-        # Human matrices spell it UCP1 and mouse ones Ucp1. A meta-analysis
-        # pools both, so one typed symbol has to find either.
-        row_i <- match(toupper(input$biomolecule), toupper(rownames(data_info)))
-        if (is.na(row_i)) next
-        gene_row <- rownames(data_info)[row_i]
         
         dataset_group1 <- group1_samples[group1_samples$dataset == dataset, ]
         dataset_group2 <- group2_samples[group2_samples$dataset == dataset, ]
@@ -397,7 +392,7 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
         group1_expr <- as.numeric(data_info[gene_row, available_samples1])
         group2_expr <- as.numeric(data_info[gene_row, available_samples2])
         
-        has_negative <- quick_negative_check(data_info, dataset)
+        has_negative <- os_matrix_has_negative(dataset, input$data_preference)
         
         if (has_negative) {
           group1_expr_trans <- group1_expr

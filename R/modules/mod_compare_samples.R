@@ -127,9 +127,8 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       units <- list_units(ds())
       unit_reactive(if(length(units) > 0) units[1] else "unknown")
       
-      tmm_data <- load_expression(ds(), unit_reactive())
-      
-      updateSelectizeInput(session, "genes", choices = tmm_data$Symbol, server = TRUE)
+      updateSelectizeInput(session, "genes",
+                           choices = os_gene_choices(ds(), unit_reactive()), server = TRUE)
     })
     
     observeEvent(input$conditions, {

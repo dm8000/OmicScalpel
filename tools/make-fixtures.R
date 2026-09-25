@@ -13,6 +13,9 @@ suppressMessages({ library(readxl); library(writexl) })
 args <- commandArgs(FALSE)
 here <- dirname(sub("^--file=", "", grep("^--file=", args, value = TRUE)[1]))
 source(file.path(here, "..", "R", "config.R"))
+# for os_round_expression(): the fixture stores its numbers the way the hub
+# does, or the tests would be checking against a precision the app never keeps
+source(file.path(here, "..", "R", "data_io.R"))
 
 pos <- commandArgs(TRUE)
 src <- if (length(pos)) pos[1] else os_path("hubdata")
@@ -102,13 +105,21 @@ dir.create(out, showWarnings = FALSE, recursive = TRUE)
 write_xlsx(meta_out, file.path(out, "Metadata.xlsx"))
 write_xlsx(summ_out, file.path(out, "Datasets_summary.xlsx"))
 
-symbols <- head(unique(gene$Symbol[!is.na(gene$Symbol)]), N_GENES)
+# The housekeeping genes the Across datasets tab plots as a ruler have to be
+# in the fixture, or that tab cannot be tested against it at all.
+hk <- local({
+  f <- file.path(os_root(), "config", "ai-housekeeping.txt")
+  if (!file.exists(f)) character(0) else {
+    v <- trimws(readLines(f, warn = FALSE)); v[nzchar(v) & !startsWith(v, "#")]
+  }
+})
+symbols <- unique(c(hk, head(unique(gene$Symbol[!is.na(gene$Symbol)]), N_GENES)))
 
 for (ds in names(units)) {
   dir.create(file.path(out, ds), showWarnings = FALSE)
   samples <- meta_out$SampleID[meta_out$dataset == ds]
   for (u in units[[ds]]) {
-    m <- matrix(round(rlnorm(length(symbols) * length(samples), 1.5, 1.8), 3),
+    m <- matrix(os_round_expression(rlnorm(length(symbols) * length(samples), 1.5, 1.8)),
                 nrow = length(symbols), dimnames = list(NULL, samples))
     if (u == "count") m <- round(m * 10)
     df <- cbind(Symbol = symbols, as.data.frame(m, check.names = FALSE))

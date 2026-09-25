@@ -56,6 +56,46 @@ ai_kind <- function(x) {
   NA_character_
 }
 
+# --- the facets, declared rather than written into the code -------------------
+
+# config/ai-facets.txt says which columns the question tab may ask about, and
+# where each one lives. A facet added there needs no code: ai_questions()
+# generates its question and ai_filter_facet() already filters generically.
+ai_facet_spec <- function() {
+  path <- file.path(os_root(), "config", "ai-facets.txt")
+  if (!file.exists(path)) return(list())
+  lines <- readLines(path, warn = FALSE)
+  lines <- lines[!grepl("^\\s*(#|$)", lines)]
+  out <- list()
+  for (l in lines) {
+    f <- trimws(strsplit(l, "\\|")[[1]])
+    if (length(f) < 5) next
+    out[[f[1]]] <- list(
+      id       = f[1],
+      source   = f[2],
+      columns  = trimws(strsplit(f[3], ",")[[1]]),
+      families = if (identical(f[4], "-")) NA_character_ else f[4],
+      asks     = f[5]
+    )
+  }
+  out
+}
+
+# Values to family, from whichever file the facet declares. Cached per file.
+ai_families <- function(file) {
+  if (is.na(file)) return(list(family = character(0), about = character(0)))
+  path <- file.path(os_root(), "config", file)
+  if (!file.exists(path)) return(list(family = character(0), about = character(0)))
+  lines <- readLines(path, warn = FALSE)
+  lines <- lines[!grepl("^\\s*(#|$)", lines)]
+  parts <- strsplit(lines, "\\s*\\|\\s*")
+  keep <- lengths(parts) >= 3
+  list(family = stats::setNames(vapply(parts[keep], `[`, character(1), 2),
+                                vapply(parts[keep], `[`, character(1), 1)),
+       about  = stats::setNames(vapply(parts[keep], `[`, character(1), 3),
+                                vapply(parts[keep], `[`, character(1), 2)))
+}
+
 # --- what a column means -----------------------------------------------------
 
 ai_column_docs <- function() {
@@ -89,10 +129,40 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
   }
   if (is.null(md)) md <- load_metadata()
   docs <- ai_column_docs()
+  spec <- ai_facet_spec()
+  # in.vivo.or.in.vitro and Type.of.samples exist only in the summary sheet, so
+  # a catalog built from the per-sample metadata alone cannot tell tissue from
+  # cultured cells. Missing or unreadable, the facets that need it are simply
+  # empty, which the filters already treat as "not recorded".
+  summ <- tryCatch(load_datasets_summary(), error = function(e) NULL)
 
   cols <- setdiff(names(md), c(AI_ID_COLS, AI_FACET_COLS))
   out <- lapply(sort(unique(md$dataset)), function(d) {
     rows <- md[!is.na(md$dataset) & md$dataset == d, , drop = FALSE]
+
+    srow <- if (!is.null(summ) && "dataset" %in% names(summ)) {
+      summ[!is.na(summ$dataset) & summ$dataset == d, , drop = FALSE]
+    } else NULL
+
+    from <- function(df, cn) {
+      if (is.null(df) || !nrow(df) || !cn %in% names(df)) return(character(0))
+      ai_split_multi(unique(ai_real(df[[cn]])))
+    }
+
+    # The first column with values wins, metadata before summary: the per-sample
+    # file is the one that gets edited, so it is the one that is current.
+    facet_values <- function(fs) {
+      for (cn in fs$columns) {
+        v <- switch(fs$source,
+                    metadata = from(rows, cn),
+                    summary  = from(srow, cn),
+                    union(from(rows, cn), from(srow, cn)))
+        if (length(v)) return(v)
+      }
+      character(0)
+    }
+
+    facets <- lapply(spec, facet_values)
 
     facet <- function(cn) {
       if (!cn %in% names(rows)) return(character(0))
@@ -119,10 +189,12 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
 
     list(dataset   = d,
          n         = nrow(rows),
-         species   = facet("Species"),
-         tissue    = facet("Tissue"),
-         data_type = facet("Data.type"),
-         cell_type = facet("Cell.type"),
+         facets    = facets,
+         # kept beside facets because ai_state() and the tabs read them by name
+         species   = facets$species %||% facet("Species"),
+         tissue    = facets$tissue %||% facet("Tissue"),
+         data_type = facets$measurement %||% facet("Data.type"),
+         cell_type = facets$cell_type %||% facet("Cell.type"),
          units     = tryCatch(list_units(d), error = function(e) character(0)),
          variables = vars)
   })
@@ -174,18 +246,7 @@ ai_variable_criteria <- function(catalog, max_options = 120L, kinds = NULL) {
 # only the datasets that spell it that way and misses the ones that name a
 # depot -- and a dataset that records no tissue at all is not evidence that it
 # is the wrong tissue, so it is never excluded by this filter.
-ai_tissue_families <- function() {
-  path <- file.path(os_root(), "config", "ai-tissues.txt")
-  if (!file.exists(path)) return(list(family = character(0), about = character(0)))
-  lines <- readLines(path, warn = FALSE)
-  lines <- lines[!grepl("^\\s*(#|$)", lines)]
-  parts <- strsplit(lines, "\\s*\\|\\s*")
-  keep <- lengths(parts) >= 3
-  list(family = stats::setNames(vapply(parts[keep], `[`, character(1), 2),
-                                vapply(parts[keep], `[`, character(1), 1)),
-       about  = stats::setNames(vapply(parts[keep], `[`, character(1), 3),
-                                vapply(parts[keep], `[`, character(1), 2)))
-}
+ai_tissue_families <- function() ai_families("ai-tissues.txt")
 
 ai_family_of <- function(values, fam = ai_tissue_families()$family) {
   if (!length(values)) return(character(0))

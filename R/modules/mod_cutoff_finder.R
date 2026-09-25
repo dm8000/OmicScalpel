@@ -214,19 +214,18 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       units <- list_units(ds())
       updateSelectInput(session, "unit", choices = units)
       if (length(units)) {
-        expr <- load_expression(ds(), units[1])
         # server = TRUE: 54,000 symbols shipped to the browser is what makes
-        # selectize warn and the tab crawl
-        updateSelectizeInput(session, "gene", choices = unique(expr$Symbol),
-                             server = TRUE)
+        # selectize warn and the tab crawl. The names come from the gene index,
+        # so filling the menu no longer reads the matrix.
+        updateSelectizeInput(session, "gene",
+                             choices = os_gene_choices(ds(), units[1]), server = TRUE)
       }
     })
 
     observeEvent(input$unit, {
       req(ds(), input$unit)
-      expr <- load_expression(ds(), input$unit)
-      updateSelectizeInput(session, "gene", choices = unique(expr$Symbol),
-                           server = TRUE)
+      updateSelectizeInput(session, "gene",
+                           choices = os_gene_choices(ds(), input$unit), server = TRUE)
     })
 
     observeEvent(input$outcome_col, {
@@ -258,9 +257,9 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       md <- sel_meta()
       if (identical(input$source, "gene")) {
         req(input$unit, input$gene)
-        expr <- load_expression(ds(), input$unit)
-        row  <- expr[expr$Symbol == input$gene, , drop = FALSE]
-        if (!nrow(row)) return(NULL)
+        # One row, not the matrix: on GTEX that is 0.02 s instead of 14 s.
+        row <- load_expression_row(ds(), input$gene, input$unit)
+        if (is.null(row) || !nrow(row)) return(NULL)
         vals <- as_num(unlist(row[1, -1, drop = TRUE]))
         names(vals) <- names(row)[-1]
         list(name   = paste0(input$gene, ".", input$unit),
@@ -404,20 +403,24 @@ cutoffFinderServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
     output$scan_plot <- renderPlot({
       f <- found()
       ps <- panels(f, "scan")
-      # need(TRUE, NULL) is not a no-op: need() insists on a character message
-      # whatever the condition, so the happy path threw before reaching a plot.
-      if (!length(ps)) validate(need(FALSE, cf_nothing_drawn(f)))
+      # shiny::validate, spelled out. global.R attaches jsonlite after shiny, so
+      # a bare validate() is jsonlite's -- it asks whether a string is valid
+      # JSON. need(FALSE, msg) returns the message, jsonlite happily says it is
+      # not JSON, and the render carries on past the guard it was meant to
+      # stop; need(TRUE, msg) returns NULL and it errors with
+      # "is.character(txt) is not TRUE". Both paths wrong, neither obvious.
+      if (!length(ps)) shiny::validate(need(FALSE, cf_nothing_drawn(f)))
       patchwork::wrap_plots(ps, ncol = os_facet_cols(length(ps)))
     })
 
     output$outcome_plot <- renderPlot({
       f <- found()
       if (identical(f$method, "distribution")) {
-        validate(need(FALSE, paste("The mixture method uses no outcome.",
+        shiny::validate(need(FALSE, paste("The mixture method uses no outcome.",
                                    "The split is above.")))
       }
       ps <- panels(f, "outcome")
-      if (!length(ps)) validate(need(FALSE, " "))
+      if (!length(ps)) shiny::validate(need(FALSE, " "))
       patchwork::wrap_plots(ps, ncol = os_facet_cols(length(ps)))
     })
 

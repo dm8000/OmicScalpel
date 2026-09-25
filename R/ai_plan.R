@@ -21,6 +21,8 @@ AI_INTENTS <- list(
     "whether a gene's expression differs between groups of samples, such as obese versus lean, or treated versus control",
   survival =
     "whether a gene's expression predicts survival or an outcome over time",
+  expression_level =
+    "whether a gene is expressed at all in some samples, and how much -- no comparison between groups is asked for",
   distribution =
     "how a variable is distributed, or where to cut it into high and low",
   catalog =
@@ -34,6 +36,8 @@ AI_FOLLOWUP <- list(
 )
 
 ai_questions <- function(catalog, question, genes, history = list()) {
+  spec <- ai_facet_spec()
+
   q <- list(
     answerable = list(
       type = "noul",
@@ -43,29 +47,44 @@ ai_questions <- function(catalog, question, genes, history = list()) {
     intent = list(
       type = "choice",
       instructions = "What is the question asking for?",
-      criteria = AI_INTENTS),
-    species = list(
-      type = "choice",
-      instructions = "Which organism is the question about?",
-      criteria = c(ai_species_criteria(catalog), AI_OTHER,
-                   list(any = "no organism is named"))),
-    tissue = list(
-      type = "choice",
-      instructions = "Which tissue or sample material is the question about?",
-      criteria = c(ai_tissue_criteria(catalog), AI_OTHER,
-                   list(any = "no tissue is named"))),
-    measurement = list(
-      type = "choice",
-      instructions = "What kind of measurement does the question call for?",
-      criteria = c(ai_measurement_criteria(catalog), AI_OTHER,
-                   list(any = "no particular kind of measurement is named"))),
-    variable = list(
-      type = "choice",
-      instructions = paste("Which measured variable does the question compare gene",
-                           "expression against, or group the samples by?"),
-      criteria = c(ai_variable_criteria(catalog),
-                   list(none = "the question names no such variable")))
+      criteria = AI_INTENTS)
   )
+
+  # One question per declared facet. config/ai-facets.txt is the list, so a
+  # facet the lab starts recording tomorrow becomes askable by editing a text
+  # file rather than four R files.
+  for (fs in spec) {
+    crit <- ai_facet_criteria(catalog, fs)
+    if (!length(crit)) next
+    q[[fs$id]] <- list(type = "choice", instructions = fs$asks,
+                       criteria = c(crit, AI_OTHER,
+                                    list(any = "the question does not say")))
+  }
+
+  # A question can name something to leave OUT -- "tissues other than adipose"
+  # -- and a positive choice cannot express that. Without this the model was
+  # asked which tissue the question was about and answered "adipose" at 0.16
+  # confidence, because the honest answer was not on offer.
+  ex <- ai_exclusion_criteria(catalog, spec)
+  if (length(ex)) {
+    q$exclude <- list(
+      type = "choice",
+      instructions = paste(
+        "Some questions ask about samples that are NOT something: \"in tissues",
+        "other than adipose\", \"outside the brain\", \"anywhere except plasma\",",
+        "\"besides white fat\". Does this question do that? If it does, which value",
+        "is being ruled out?"),
+      criteria = c(ex, list(
+        none = "the question names what it wants and rules nothing out")))
+  }
+
+  q$variable <- list(
+    type = "choice",
+    instructions = paste("Which measured variable does the question compare gene",
+                         "expression against, or group the samples by?"),
+    criteria = c(ai_variable_criteria(catalog),
+                 list(none = "the question names no such variable")))
+
   if (nrow(genes)) {
     q$gene <- list(
       type = "choice",
@@ -94,33 +113,43 @@ ai_questions <- function(catalog, question, genes, history = list()) {
   q
 }
 
+# The values a facet takes across the catalog, described from its families file
+# when it has one.
+ai_facet_criteria <- function(catalog, fs) {
+  fam <- ai_families(fs$families)
+  raw <- unlist(lapply(catalog, function(d) ai_facet_of(d, fs$id)), use.names = FALSE)
+  v <- sort(unique(ai_family_of(raw, fam$family)))
+  if (!length(v)) return(list())
+  stats::setNames(as.list(ifelse(is.na(fam$about[v]),
+                                 paste0("the value \"", v, "\""),
+                                 unname(fam$about[v]))), v)
+}
+
+# Everything that could be excluded, labelled with the facet it belongs to so
+# the decision knows which filter to drop.
+ai_exclusion_criteria <- function(catalog, spec, max_options = 40L) {
+  out <- list()
+  for (fs in spec) {
+    for (v in names(ai_facet_criteria(catalog, fs))) {
+      out[[paste0(fs$id, ":", v)]] <- paste0("samples that are NOT ", v)
+    }
+  }
+  utils::head(out, max_options)
+}
+
+# A dataset's values for a facet. Catalogs built by hand in the tests carry the
+# old flat fields, so both shapes are read.
+ai_facet_of <- function(entry, id) {
+  v <- entry$facets[[id]]
+  if (!is.null(v)) return(v)
+  legacy <- c(species = "species", tissue = "tissue", measurement = "data_type",
+              cell_type = "cell_type")
+  if (!is.na(legacy[id])) entry[[legacy[[id]]]] %||% character(0) else character(0)
+}
+
 # "other" has to be offered, or a question about an organism nobody collected
 # is answered with the nearest one on the list.
 AI_OTHER <- list(other = "an organism, tissue or measurement that is not in this collection")
-
-ai_species_criteria <- function(catalog) {
-  v <- ai_facet_values(catalog, "species")
-  known <- c(HSA = "human", Mmu = "mouse", Rno = "rat", Elephant = "elephant")
-  stats::setNames(as.list(ifelse(is.na(known[v]), v, known[v])), v)
-}
-
-ai_measurement_criteria <- function(catalog) {
-  v <- ai_facet_values(catalog, "data_type")
-  known <- c(RNAseq = "RNA sequencing of gene expression",
-             Array = "microarray of gene expression",
-             Microarray = "microarray of gene expression",
-             Signal.lipidomics = "lipidomics: lipid species, not genes",
-             Proteomics = "proteomics: proteins, not transcripts")
-  stats::setNames(as.list(ifelse(is.na(known[v]), paste0("data of type ", v), known[v])), v)
-}
-
-ai_tissue_criteria <- function(catalog) {
-  fam <- ai_tissue_families()
-  v <- unique(ai_family_of(ai_facet_values(catalog, "tissue"), fam$family))
-  stats::setNames(as.list(ifelse(is.na(fam$about[v]),
-                                 paste0("the tissue or material \"", v, "\""),
-                                 unname(fam$about[v]))), v)
-}
 
 # One facet filter. Three rules, each of them forced by what this metadata is:
 #
@@ -132,8 +161,7 @@ ai_tissue_criteria <- function(catalog) {
 #   silence  -- a dataset that records nothing for a facet is not excluded by
 #               it. Nine of eighteen record no tissue at all, and not saying
 #               is not the same as saying something else.
-ai_filter_facet <- function(keep, catalog, field, answer, label, min_confidence,
-                            tr, map = identity) {
+ai_filter_facet <- function(keep, catalog, fs, answer, label, min_confidence, tr) {
   if (is.null(answer)) return(list(keep = keep, tr = tr))
   value <- jev_value(answer)
   conf  <- jev_confidence(answer)
@@ -155,9 +183,11 @@ ai_filter_facet <- function(keep, catalog, field, answer, label, min_confidence,
                                       value, 100 * conf), length(keep))))
   }
 
+  fam <- ai_families(fs$families)$family
   before <- length(keep)
-  has <- vapply(catalog[keep], function(d) length(d[[field]]) > 0, logical(1))
-  hit <- vapply(catalog[keep], function(d) value %in% map(d[[field]]), logical(1))
+  has <- vapply(catalog[keep], function(d) length(ai_facet_of(d, fs$id)) > 0, logical(1))
+  hit <- vapply(catalog[keep],
+                function(d) value %in% ai_family_of(ai_facet_of(d, fs$id), fam), logical(1))
   out <- keep[!has | hit]
   silent <- sum(!has)
   list(keep = out,
@@ -165,6 +195,14 @@ ai_filter_facet <- function(keep, catalog, field, answer, label, min_confidence,
                      sprintf("%s: %d of %d%s", value, length(out), before,
                              if (silent) sprintf(", %d of them recording none", silent) else ""),
                      length(out)))
+}
+
+# What the trace calls each facet.
+ai_facet_label <- function(id) {
+  known <- c(species = "Organism", tissue = "Tissue", cell_type = "Cell type",
+             region = "Region", measurement = "Measurement", setting = "Tissue or culture")
+  if (!is.na(known[id])) unname(known[id]) else
+    paste0(toupper(substr(id, 1, 1)), gsub("_", " ", substring(id, 2)))
 }
 
 # --- the trace ---------------------------------------------------------------
@@ -219,20 +257,46 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
 
   # --- the facets
   keep <- names(catalog)
-  f <- ai_filter_facet(keep, catalog, "species", answers$species, "Organism",
-                       min_confidence, tr)
-  keep <- f$keep; tr <- f$tr
-  f <- ai_filter_facet(keep, catalog, "tissue", answers$tissue, "Tissue",
-                       min_confidence, tr, map = ai_family_of)
-  keep <- f$keep; tr <- f$tr
-  # A much higher bar for the platform than for the organism or the tissue.
-  # "Does leptin expression increase with BMI" names no technique, and reading
-  # "expression" as RNAseq at 59% confidence threw away a microarray dataset
-  # that had both the gene and the variable. Naming a platform on purpose --
-  # "in the lipidomics data" -- comes back far more certain than that.
-  f <- ai_filter_facet(keep, catalog, "data_type", answers$measurement, "Measurement",
-                       max(min_confidence, 0.8), tr)
-  keep <- f$keep; tr <- f$tr
+  spec <- ai_facet_spec()
+
+  # What the question wants left out, if anything: "facet:value", or none.
+  excl <- if (is.null(answers$exclude)) "none" else jev_value(answers$exclude)
+  excl_conf <- jev_confidence(answers$exclude)
+  if (!identical(excl, "none") && !is.na(excl_conf) && excl_conf >= min_confidence) {
+    bits <- strsplit(excl, ":", fixed = TRUE)[[1]]
+    excl_facet <- bits[1]; excl_value <- paste(bits[-1], collapse = ":")
+  } else {
+    excl <- "none"; excl_facet <- NA_character_; excl_value <- NA_character_
+  }
+
+  for (fs in spec) {
+    if (identical(fs$id, excl_facet)) {
+      # The question is about what this facet is NOT. Filtering positively on
+      # it as well would ask for both at once.
+      before <- length(keep)
+      fam <- ai_families(fs$families)$family
+      has <- vapply(catalog[keep], function(d) length(ai_facet_of(d, fs$id)) > 0, logical(1))
+      hit <- vapply(catalog[keep],
+                    function(d) excl_value %in% ai_family_of(ai_facet_of(d, fs$id), fam),
+                    logical(1))
+      keep <- keep[!hit]
+      tr <- ai_trace(tr, paste0("Not ", excl_value),
+                     sprintf("the question asks for samples that are not %s: %d of %d left%s",
+                             excl_value, length(keep), before,
+                             if (any(!has)) sprintf(", including %d that record none", sum(!has & !hit)) else ""),
+                     length(keep))
+      next
+    }
+    ans <- answers[[fs$id]]
+    if (is.null(ans)) next
+    # A much higher bar for the platform than for the organism or the tissue.
+    # "Does leptin expression increase with BMI" names no technique, and
+    # reading "expression" as RNAseq at 59% confidence threw away a microarray
+    # dataset that had both the gene and the variable.
+    bar <- if (identical(fs$id, "measurement")) max(min_confidence, 0.8) else min_confidence
+    f <- ai_filter_facet(keep, catalog, fs, ans, ai_facet_label(fs$id), bar, tr)
+    keep <- f$keep; tr <- f$tr
+  }
 
   # --- what a follow-up inherits
   followup <- if (is.null(answers$followup)) "new" else jev_value(answers$followup)
@@ -284,7 +348,8 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
     tr <- ai_trace(tr, "Carried over",
                    paste0("from the previous question: ", paste(inherited, collapse = ", ")))
   }
-  needs_gene <- intent %in% c("association_continuous", "comparison_groups", "survival")
+  needs_gene <- intent %in% c("association_continuous", "comparison_groups",
+                              "survival", "expression_level")
   if (identical(gene, "none") && needs_gene) {
     tr <- ai_trace(tr, "Gene",
                    if (nrow(genes)) paste0("none of the ", nrow(genes),
@@ -313,7 +378,14 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   }
 
   if (!length(keep)) {
-    return(ai_refuse(tr, "Nothing in the collection meets all of those at once."))
+    # Name the step that emptied it. "Nothing meets all of those" sends the
+    # researcher to read the whole trace to find out which one it was.
+    culprit <- NULL
+    for (st in tr) if (isTRUE(st$kept == 0L)) { culprit <- st; break }
+    return(ai_refuse(tr, if (is.null(culprit))
+      "Nothing in the collection meets all of those at once."
+      else sprintf("Nothing is left once %s is required: %s",
+                   tolower(culprit$step), culprit$detail)))
   }
 
 
@@ -354,6 +426,20 @@ ai_pick_tool <- function(intent, variable, var_kind, gene, keep, catalog,
     tr <- ai_trace(tr, "Tool", "the question asks what exists, not for a comparison")
     return(ai_plan_out("data_summary", pick_one(), keep, list(), tr,
                        sprintf("%d dataset%s match. Here is what they hold.",
+                               length(keep), if (length(keep) == 1) "" else "s")))
+  }
+
+  # "Is this gene expressed here, and how much?" -- the commonest question
+  # there is, and the one the intent list did not have. It needs no variable
+  # and no second group: it needs the value, in each dataset, beside a ruler.
+  if (identical(intent, "expression_level")) {
+    controls <- list(genes = gene, datasets = keep, housekeeping = TRUE)
+    if (!identical(split_by, "none")) controls$split_col <- split_by
+    tr <- ai_trace(tr, "Tool",
+                   sprintf("%s shown in each of %d dataset%s on its own -- they are not comparable with each other",
+                           gene, length(keep), if (length(keep) == 1) "" else "s"))
+    return(ai_plan_out("across_datasets", NULL, keep, controls, tr,
+                       sprintf("%s in %d dataset%s, each on its own scale.", gene,
                                length(keep), if (length(keep) == 1) "" else "s")))
   }
 

@@ -131,6 +131,151 @@ load_expression <- function(dataset, unit = NULL) {
   df
 }
 
+# --- expression values ------------------------------------------------------
+
+# The matrices carry up to 18 decimal places -- 4945.053081999999 is not
+# precision, it is the binary remainder of a float written out as text. One
+# decimal is all anyone reads off a plot.
+#
+# But a flat round(x, 1) is not safe on TPM: 4.5% of Rozen.BMI's non-zero
+# values are below 0.05, and 330 of its genes would become all zero, which
+# reads as "not expressed" rather than "barely expressed". So below 0.1 the
+# value keeps three significant digits, which costs nothing in size and loses
+# no gene.
+os_round_expression <- function(x) {
+  v <- suppressWarnings(as.numeric(x))
+  small <- !is.na(v) & v != 0 & abs(v) < 0.1
+  out <- round(v, 1)
+  out[small] <- signif(v[small], 3)
+  out
+}
+
+# Format for writing back, element by element.
+#
+# format(v, scientific = FALSE) looked right and is a trap twice over: it picks
+# one format for the whole vector, so a single small value pads every number in
+# the row, and on a value like 1e-300 it writes three hundred characters. Below
+# 0.1 the value is written with three significant digits, which lets the very
+# small ones fall back to 1e-06 -- read.delim and as.numeric take that back
+# exactly, and it is shorter and truer than a row of zeros.
+os_format_expression <- function(x) {
+  v <- os_round_expression(x)
+  out <- character(length(v))
+  small <- !is.na(v) & v != 0 & abs(v) < 0.1
+  out[small]  <- formatC(v[small], format = "g", digits = 3)
+  out[!small] <- formatC(v[!small], format = "f", digits = 1, drop0trailing = TRUE)
+  out[is.na(v)] <- "NA"
+  out
+}
+
+# Copy a matrix into the hub with the values rounded. Used by the upload tab
+# and by tools/round-matrices.R, so the rule is applied in exactly one way.
+#
+# Streams: a 400 MB matrix does not need to be in memory to be rewritten.
+os_write_rounded_matrix <- function(inp, out, chunk = 2000L) {
+  header <- tryCatch(readLines(inp, n = 1L, warn = FALSE), error = function(e) character(0))
+  if (!length(header) || !grepl("\t", header)) {
+    file.copy(inp, out, overwrite = TRUE)
+    return(list(rounded = FALSE, why = "it is not a tab-separated matrix"))
+  }
+  con_in  <- file(inp, "r"); on.exit(close(con_in), add = TRUE)
+  con_out <- file(out, "w"); on.exit(close(con_out), add = TRUE)
+  writeLines(readLines(con_in, n = 1L, warn = FALSE), con_out)
+  rows <- 0L
+  repeat {
+    lines <- readLines(con_in, n = chunk, warn = FALSE)
+    if (!length(lines)) break
+    parts <- strsplit(lines, "\t", fixed = TRUE)
+    writeLines(vapply(parts, function(p) {
+      paste0(p[1], "\t", paste(os_format_expression(p[-1]), collapse = "\t"))
+    }, character(1)), con_out)
+    rows <- rows + length(lines)
+  }
+  list(rounded = TRUE, why = NA_character_, rows = rows)
+}
+
+# One gene's row, without reading the matrix.
+#
+# Measured on GTEX_adipose_TMM.txt (402 MB): load_expression() takes 14.1 s and
+# 530 MB of memory; this takes 0.02 s and returns the same numbers. Every
+# caller that wants one gene out of 54,000 was paying the former.
+#
+# grep, not a byte-offset index: an index that goes stale returns a different
+# gene's numbers and says nothing, which is worse than being slow. The symbol
+# that comes back is checked against the one asked for.
+load_expression_row <- function(dataset, symbols, unit = NULL) {
+  p <- expression_path(dataset, unit)
+  if (!file.exists(p) || !length(symbols)) return(NULL)
+
+  header <- strsplit(readLines(p, n = 1L, warn = FALSE), "\t", fixed = TRUE)[[1]]
+  if (length(header) < 2L) return(NULL)
+  # The first column may be unnamed, exactly as load_expression() handles.
+  samples <- header[-1]
+
+  # ^SYMBOL\t anchored: without the tab, LEP also matches LEPR and LEPROT.
+  pat <- paste0("^(", paste(vapply(symbols, function(s)
+    gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", s), character(1)), collapse = "|"),
+    ")\t")
+  lines <- suppressWarnings(system2("grep", c("-P", shQuote(pat), shQuote(p)),
+                                    stdout = TRUE, stderr = FALSE))
+  if (!length(lines) || !is.null(attr(lines, "status"))) return(NULL)
+
+  rows <- lapply(lines, function(l) strsplit(l, "\t", fixed = TRUE)[[1]])
+  found <- vapply(rows, `[`, character(1), 1L)
+  keep <- found %in% symbols            # never trust the pattern alone
+  rows <- rows[keep]; found <- found[keep]
+  if (!length(rows)) return(NULL)
+
+  mat <- do.call(rbind, lapply(rows, function(r) {
+    v <- suppressWarnings(as.numeric(r[-1]))
+    length(v) <- length(samples)
+    v
+  }))
+  out <- data.frame(Symbol = found, mat, check.names = FALSE,
+                    stringsAsFactors = FALSE)
+  names(out)[-1] <- samples
+  out
+}
+
+# The gene names of a dataset, for a menu.
+#
+# Five tabs used to call load_expression() for this and throw the matrix away:
+# on GTEX that is 14 seconds and 530 MB to fill a dropdown. The gene index
+# already holds the symbols, so it answers instead -- and falls back to the
+# matrix when the index has not been built or does not know the dataset, so a
+# fresh install still works, only slowly.
+os_gene_choices <- function(dataset, unit = NULL) {
+  idx <- tryCatch(ai_gene_index(), error = function(e) NULL)
+  v <- if (!is.null(idx)) idx$datasets[[dataset]] else NULL
+  if (!is.null(v) && length(v)) return(unique(v))
+  expr <- tryCatch(load_expression(dataset, unit), error = function(e) NULL)
+  if (is.null(expr) || !"Symbol" %in% names(expr)) return(character(0))
+  unique(expr$Symbol)
+}
+
+# Does this matrix hold negative values?
+#
+# The answer decides whether a module log-transforms, and it used to be taken
+# by sampling a matrix that had been read in full for the purpose. The first
+# 200 rows and 10 sample columns carry the same information at no cost, which
+# is what the sampling was already settling for.
+os_matrix_has_negative <- function(dataset, unit = NULL, rows = 200L, cols = 10L) {
+  p <- expression_path(dataset, unit)
+  if (!file.exists(p)) return(FALSE)
+  key <- paste0("omicscalpel.neg.", basename(p))
+  cached <- getOption(key)
+  if (!is.null(cached) && identical(cached$mtime, file.mtime(p))) return(cached$value)
+
+  lines <- readLines(p, n = rows + 1L, warn = FALSE)[-1]
+  vals <- unlist(lapply(lines, function(l) {
+    f <- strsplit(l, "\t", fixed = TRUE)[[1]]
+    suppressWarnings(as.numeric(utils::head(f[-1], cols)))
+  }), use.names = FALSE)
+  value <- isTRUE(any(vals < 0, na.rm = TRUE))
+  do.call(options, stats::setNames(list(list(mtime = file.mtime(p), value = value)), key))
+  value
+}
+
 # --- download log ----------------------------------------------------------
 
 log_download <- function(...) {

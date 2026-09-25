@@ -32,7 +32,7 @@ m <- load_metadata()
 # An exact column count is a tripwire for a fixture rebuilt against a different
 # schema; it moves whenever the fixture legitimately gains a column, and the
 # tab that needed the column is what says whether that was legitimate.
-chk(nrow(m) == 31 && ncol(m) == 197, "load_metadata shape",
+chk(nrow(m) == 31 && ncol(m) == 201, "load_metadata shape",
     nrow(m), "x", ncol(m))
 chk(all(c("DEMO.Marker", "DEMO.OS.time", "DEMO.OS.event", "DEMO.Responder")
         %in% names(m)),
@@ -81,7 +81,9 @@ chk(ncol(e) == n_samples + 1L, "one column per sample plus the feature column",
     ncol(e), " columns for ", n_samples, " samples")
 chk(identical(names(e)[-1], m$SampleID[m$dataset == "DEMO_RNAseq"]),
     "columns are exactly this dataset's samples, in order")
-chk(nrow(e) == 200, "expression row count", nrow(e))
+# 200 sampled symbols plus the housekeeping genes the Across datasets tab
+# needs a fixture to contain.
+chk(nrow(e) == 205, "expression row count", nrow(e))
 chk(identical(as.numeric(e[[2]][1:5]), as.numeric(direct[[2]][1:5])),
     "first five values match the file on disk")
 

@@ -1,0 +1,26 @@
+# What the question tab may ask about a dataset, besides the variables.
+#
+# This file is the list. Add a line and the search gains a question; no code
+# changes. That is the point: today it is organism, tissue, cell type, region,
+# measurement and setting, and tomorrow it is whatever the lab starts recording.
+#
+# source: where the values come from.
+#   metadata  the per-sample Metadata.xlsx -- richer, and the truth when both have it
+#   summary   the per-dataset Datasets_summary.xlsx
+#   both      metadata first, falling back to the summary
+#
+# Several columns may be listed for one facet: the first that has values wins.
+# in.vivo.or.in.vitro and Type.of.samples exist ONLY in the summary sheet,
+# which is why the catalog reads both files.
+#
+# families: a file mapping values to a family, so "adipose" matches a dataset
+# that recorded "Subcutaneous". "-" for none.
+#
+# Format:  <facet> | <source> | <column(s)> | <families> | <what the question asks>
+
+species     | metadata | Species                   | ai-species.txt      | Which organism is the question about?
+tissue      | both     | Tissue                    | ai-tissues.txt      | Which tissue or sample material is the question about?
+cell_type   | both     | Cell.type                 | -                   | Which cell type or cell fraction is the question about?
+region      | both     | Anatomical_region,Region  | -                   | Which anatomical region or depot is the question about?
+measurement | both     | Data.type                 | ai-measurements.txt | What kind of measurement does the question call for?
+setting     | summary  | in.vivo.or.in.vitro       | ai-settings.txt     | Are the samples tissue taken from a body, or cells in culture?

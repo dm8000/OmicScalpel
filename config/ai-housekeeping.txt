@@ -1,0 +1,15 @@
+# Genes to plot beside the ones asked for, as a ruler for abundance.
+#
+# The point is not the gene, it is the scale: seeing LEP next to GAPDH in the
+# same panel says whether "expressed" means abundant or barely there. Measured
+# in this hub: each of these is in 11 of the 18 datasets (matching ignores
+# case, so Gapdh counts as GAPDH). 18S is not present under RN18S1 or 18S in
+# any matrix, which is why it is not listed.
+#
+# One symbol per line.
+
+GAPDH
+ACTB
+B2M
+TBP
+PPIA
