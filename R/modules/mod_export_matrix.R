@@ -20,7 +20,7 @@ exportMatrixUI <- function(id) {
   ns <- NS(id)
   os_layout(
     left = tagList(
-      os_panel(title = "Selection",
+      os_panel(title = "Selection", collapse = TRUE,
         uiOutput(ns("unit_ui")),
         selectizeInput(ns("genes_list"), "Select genes:", choices = NULL, multiple = TRUE),
         helpText("Leave empty to include all genes"),
@@ -38,11 +38,11 @@ exportMatrixUI <- function(id) {
       )
     ),
     right = tagList(
-      os_panel(title = "Export",
+      os_panel(title = "Export", collapse = TRUE,
         actionButton(ns("generate_matrix"), "Generate matrix"),
         downloadButton(ns("download_matrix"), "Download matrix")
       ),
-      os_panel(title = "Checks",
+      os_panel(title = "Checks", collapse = TRUE,
         verbatimTextOutput(ns("matrix_checks")),
         plotOutput(ns("boxplot"), height = "250px"),
         hr(),
@@ -62,7 +62,10 @@ exportMatrixServer <- function(id, ds, meta, go_to = NULL) {
       
       if (length(units) > 0) {
         expr <- load_expression(dataset, units[1])
-        updateSelectizeInput(session, "genes_list", choices = expr$Symbol)
+        # server = TRUE: the biggest matrix here has 54,000 genes and shipping them
+        # all to the browser is what makes selectize warn and the tab crawl
+        updateSelectizeInput(session, "genes_list", choices = expr$Symbol,
+                             server = TRUE)
         
         current_samples <- colnames(expr)[-1]
         meta_df <- meta()

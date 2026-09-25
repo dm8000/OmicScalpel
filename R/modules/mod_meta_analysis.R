@@ -2,7 +2,7 @@ metaAnalysisUI <- function(id) {
   ns <- NS(id)
   os_layout(
     left = tagList(
-      os_panel(title = "Input Parameters",
+      os_panel(title = "Input Parameters", collapse = TRUE,
         textInput(ns("biomolecule"), "Biomolecule Name:", placeholder = "e.g., LEP"),
         selectInput(ns("condition"), "Select Condition:", choices = NULL),
         radioButtons(ns("stat_test"), "Statistical Test:",
@@ -68,10 +68,10 @@ metaAnalysisUI <- function(id) {
       )
     ),
     right = tagList(
-      os_panel(title = "Analysis Summary",
+      os_panel(title = "Analysis Summary", collapse = TRUE,
         verbatimTextOutput(ns("analysis_summary"))
       ),
-      os_panel(title = "Selected Metadata",
+      os_panel(title = "Selected Metadata", collapse = TRUE,
         DT::dataTableOutput(ns("metadata_table"))
       )
     )

@@ -13,3 +13,6 @@ metadata_editor      dataset_selector   # idem (it was a renderUI wrapper)
 
 correlation_analysis reload_metadata    # moved to the sidebar, once for every tab
 compare_samples      reload_metadata    # idem
+
+compare_genes        gene_select        # the gene selector is a static input now: created by renderUI, updateSelectizeInput raced the UI that was to hold it and the list never arrived
+compare_samples      gene_select        # idem

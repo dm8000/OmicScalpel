@@ -41,7 +41,7 @@ cutoffMakerUI <- function(id) {
           }
         "))
       ),
-      os_panel(title = "Cutoffs",
+      os_panel(title = "Cutoffs", collapse = TRUE,
         pickerInput(ns("numeric_col"), "Select Numeric Column:", choices = NULL),
         div(style = "text-align: right; margin-bottom: 5px;",
           actionButton(ns("add_cutoff"), "+", class = "btn-xs"),
@@ -64,7 +64,7 @@ cutoffMakerUI <- function(id) {
       )
     ),
     right = tagList(
-      os_panel(title = "Saving Data",
+      os_panel(title = "Saving Data", collapse = TRUE,
         actionBttn(ns("save"), "Save Changes", icon = icon("floppy-disk"), style = "material-flat", color = "primary", block = TRUE)
       )
     )

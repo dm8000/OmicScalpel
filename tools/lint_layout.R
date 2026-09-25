@@ -37,9 +37,19 @@ children_of <- function(x) {
 # every box title anywhere below this node
 # os_panel() puts its title in .os-panel-head; a module not yet converted still
 # uses shinydashboard's box(), whose title is an h3.box-title. Both count.
+# Text nodes only. A collapsible header holds a <span> for the caret before
+# its title, and flattening children with unlist() turned "Cutoffs" into
+# "spanos-caretCutoffs" -- the tag's own name and class swept up as content.
+text_of <- function(x) {
+  if (is.character(x)) return(x)
+  if (is_tag(x)) return(unlist(lapply(x$children, text_of)))
+  if (is.list(x))  return(unlist(lapply(x, text_of)))
+  character(0)
+}
+
 titles_below <- function(x, acc = character(0)) {
   if (is_tag(x) && (has_class(x, "box-title") || has_class(x, "os-panel-head"))) {
-    acc <- c(acc, trimws(paste(unlist(x$children), collapse = "")))
+    acc <- c(acc, trimws(paste(text_of(x), collapse = "")))
   }
   for (ch in children_of(x)) acc <- titles_below(ch, acc)
   acc

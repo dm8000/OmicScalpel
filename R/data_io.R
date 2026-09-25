@@ -107,6 +107,13 @@ expression_path <- function(dataset, unit = NULL) {
 }
 
 # The first column holds the feature name; the rest are samples.
+#
+# Most matrices call that column Symbol, but some are written with the feature
+# names as row names and no header for them -- WT1_CL_treatment_Yang's three
+# files are like that. read.delim then gives the column an empty or made-up
+# name, expr$Symbol is NULL, and every caller silently sees no genes at all:
+# no autocomplete, nothing to plot, no error. Naming it here fixes it once for
+# every module.
 load_expression <- function(dataset, unit = NULL) {
   p <- expression_path(dataset, unit)
   if (!file.exists(p)) {
@@ -115,7 +122,13 @@ load_expression <- function(dataset, unit = NULL) {
          if (length(have)) paste(have, collapse = ", ") else "nothing",
          call. = FALSE)
   }
-  read.delim(p, check.names = FALSE)
+  df <- read.delim(p, check.names = FALSE)
+  if (!ncol(df)) stop("empty expression file: ", basename(p), call. = FALSE)
+  first <- names(df)[1]
+  if (is.na(first) || !nzchar(trimws(first)) || first %in% c("X", "V1")) {
+    names(df)[1] <- "Symbol"
+  }
+  df
 }
 
 # --- download log ----------------------------------------------------------

@@ -398,3 +398,131 @@ table.dataTable tbody > tr.selected > * {
   padding-top: 8px;
   border-top: 1px solid var(--os-border);
 }
+
+/* ---------------------------------------------------- collapsible panels -- */
+
+.os-collapse-toggle { position: absolute; opacity: 0; pointer-events: none; }
+
+.os-collapsible > .os-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+.os-collapsible > .os-panel-head:hover { color: var(--os-text); }
+
+.os-caret {
+  display: inline-block;
+  width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transform: rotate(90deg);
+  transition: transform .12s ease;
+}
+
+/* checked = collapsed: the caret points right and the body is gone */
+.os-collapse-toggle:checked ~ .os-panel-head .os-caret { transform: rotate(0deg); }
+.os-collapse-toggle:checked ~ .os-panel-body { display: none; }
+.os-collapse-toggle:checked ~ .os-panel-head { border-bottom: none; }
+
+/* --------------------------------------------- selectize dropdown, dark -- */
+
+/* the open menu was landing on the browser default white */
+.selectize-dropdown,
+.selectize-dropdown-content,
+.selectize-dropdown .option,
+.selectize-dropdown [data-selectable] {
+  background: var(--os-surface-2) !important;
+  color: var(--os-text) !important;
+  border-color: var(--os-border) !important;
+}
+.selectize-dropdown .option:hover,
+.selectize-dropdown .active,
+.selectize-dropdown [data-selectable].active {
+  background: var(--os-accent-dim) !important;
+  color: #fff !important;
+}
+.selectize-dropdown .optgroup-header {
+  background: var(--os-surface) !important;
+  color: var(--os-muted) !important;
+}
+.selectize-control.single .selectize-input,
+.selectize-control.single .selectize-input.input-active {
+  background: var(--os-surface-2) !important;
+  color: var(--os-text) !important;
+}
+.selectize-control.single .selectize-input:after { border-top-color: var(--os-muted); }
+
+/* ------------------------------------------------- sortable rank lists -- */
+
+/* the group-reordering lists shipped with bootstrap's blue, which is the one
+   colour on the page that belongs to nothing else here */
+.rank-list-container,
+.bucket-list-container,
+.default-sortable .rank-list-container {
+  background: transparent !important;
+  border: none !important;
+}
+.rank-list-container .rank-list-title,
+.bucket-list-container .rank-list-title {
+  background: var(--os-surface-2) !important;
+  color: var(--os-muted) !important;
+  border: 1px solid var(--os-border) !important;
+  border-bottom: none !important;
+  border-radius: var(--os-radius) var(--os-radius) 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+}
+.rank-list {
+  background: var(--os-surface) !important;
+  border: 1px solid var(--os-border) !important;
+  border-radius: 0 0 var(--os-radius) var(--os-radius);
+  min-height: 34px;
+  padding: 4px;
+}
+.rank-list-item {
+  background: var(--os-surface-2) !important;
+  color: var(--os-text) !important;
+  border: 1px solid var(--os-border-2) !important;
+  border-radius: var(--os-radius);
+  padding: 3px 8px;
+  margin: 2px 0;
+  font-size: 12px;
+  cursor: grab;
+}
+.rank-list-item:hover { border-color: var(--os-accent) !important; }
+.sortable-ghost, .rank-list-item.sortable-chosen {
+  background: var(--os-accent-dim) !important;
+  border-color: var(--os-accent) !important;
+  color: #fff !important;
+}
+
+/* ------------------------------------------------- remaining browser blue -- */
+
+/* checkboxes, radios and progress bars draw with the browser's own accent,
+   which is the blue that does not belong to anything else on the page */
+input[type="checkbox"], input[type="radio"], progress {
+  accent-color: var(--os-accent);
+}
+
+/* Firefox ignores ::-webkit-scrollbar, so panels with their own overflow were
+   ending in a white strip */
+html { scrollbar-color: #3a3a3a var(--os-bg); scrollbar-width: thin; }
+.os-panel-body, .dataTables_scrollBody, .selectize-dropdown-content {
+  scrollbar-color: #3a3a3a var(--os-surface);
+  scrollbar-width: thin;
+}
+
+/* focus rings were bootstrap blue too */
+.form-control:focus, .btn:focus, .selectize-input.focus,
+a:focus, input:focus, select:focus, textarea:focus {
+  outline-color: var(--os-accent);
+  box-shadow: none !important;
+}

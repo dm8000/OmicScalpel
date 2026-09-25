@@ -15,16 +15,16 @@ correlationUI <- function(id) {
     ),
     os_layout(
       left = tagList(
-        os_panel(title = "Selection",
+        os_panel(title = "Selection", collapse = TRUE,
                  uiOutput(ns("condition_select")),
                  uiOutput(ns("gene_select")),
                  uiOutput(ns("numeric_column_select")),
                  actionButton(ns("plot"), "Plot")
         ),
-        os_panel(title = "Reorder & hide groups",
+        os_panel(title = "Reorder & hide groups", collapse = TRUE,
                  uiOutput(ns("sortable_conditions"))
         ),
-        os_panel(title = "Statistics",
+        os_panel(title = "Statistics", collapse = TRUE,
                  actionButton(ns("correlation_test"), "Perform Spearman Correlation Test"),
                  checkboxInput(ns("log2_y"), "Log2 Transform Y-axis", FALSE),
                  checkboxInput(ns("log2_x"), "Log2 Transform X-axis", FALSE)
@@ -45,7 +45,7 @@ correlationUI <- function(id) {
         )
       ),
       right = tagList(
-        os_panel(title = "Labels",
+        os_panel(title = "Labels", collapse = TRUE,
                  textInput(ns("plot_title"), "Plot Title", value = "My Plot Title"),
                  textInput(ns("x_axis_label"), "X-axis Label", value = "Numeric Value"),
                  textInput(ns("y_axis_label"), "Y-axis Label", value = "Expression"),
@@ -56,7 +56,7 @@ correlationUI <- function(id) {
                      sliderInput(ns("stat_text_font_size"), "Stat Text Font Size:", min = 2, max = 8, value = 5)
                  )
         ),
-        os_panel(title = "Size adjustments",
+        os_panel(title = "Size adjustments", collapse = TRUE,
                  div(style = "max-height: 200px; overflow-y: auto;",
                      sliderInput(ns("plot_width"), "Plot Width (px)", min = 400, max = 2000, value = 800, step = 50),
                      sliderInput(ns("plot_height"), "Plot Height (px)", min = 400, max = 2000, value = 800, step = 50),
@@ -66,12 +66,12 @@ correlationUI <- function(id) {
                      sliderInput(ns("line_thickness"), "Line Thickness", min = 0.1, max = 3, value = 0.5, step = 0.1)
                  )
         ),
-        os_panel(title = "Color selection",
+        os_panel(title = "Color selection", collapse = TRUE,
                  selectInput(ns("color_palette"), "Color Palette",
                              choices = c("Dark2","Set1","Accent","Paired","Set2","Set3","Pastel1","Pastel2","Custom","viridis","magma","plasma","inferno")),
                  conditionalPanel(condition = "input.color_palette == 'Custom'", ns = ns, uiOutput(ns("custom_palette_ui")))
         ),
-        os_panel(title = "Settings",
+        os_panel(title = "Settings", collapse = TRUE,
                  downloadButton(ns("download_settings"), "Export Settings"),
                  br(), br(),
                  fileInput(ns("upload_settings"), "Import Settings", accept = ".json"),

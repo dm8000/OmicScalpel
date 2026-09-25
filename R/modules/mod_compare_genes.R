@@ -13,20 +13,22 @@ compareGenesUI <- function(id) {
     ),
     os_layout(
       left = tagList(
-        os_panel(title = "Selection",
+        os_panel(title = "Selection", collapse = TRUE,
           uiOutput(ns("condition_select")),
-          uiOutput(ns("gene_select")),
+          selectizeInput(ns("genes"), "Select Genes", choices = NULL,
+                       multiple = TRUE,
+                       options = list(server = TRUE, maxOptions = 1000)),
           actionButton(ns("plot"), "Generate Plot")
         ),
-        os_panel(title = "Reorder groups",
+        os_panel(title = "Reorder groups", collapse = TRUE,
           uiOutput(ns("sortable_conditions"))
         ),
-        os_panel(title = "Statistics",
+        os_panel(title = "Statistics", collapse = TRUE,
           checkboxInput(ns("show_wilcox"), "Show Wilcoxon Test Lines", value = FALSE),
           checkboxInput(ns("log2_transform"), "Log2 Transform Data", value = FALSE),
           actionButton(ns("wilcox_test"), "Perform Pairwise Wilcox Test")
         ),
-        os_panel(title = "Y axis scale",
+        os_panel(title = "Y axis scale", collapse = TRUE,
           uiOutput(ns("yaxis_sliders"))
         )
       ),
@@ -48,10 +50,10 @@ compareGenesUI <- function(id) {
         )
       ),
       right = tagList(
-        os_panel(title = "Color selection",
+        os_panel(title = "Color selection", collapse = TRUE,
           uiOutput(ns("colorpicker_ui"))
         ),
-        os_panel(title = "Labels",
+        os_panel(title = "Labels", collapse = TRUE,
           textInput(ns("plot_title"), "Plot Title", value = "Facet Plot"),
           textInput(ns("x_label"), "X-axis Label", value = "Conditions"),
           textInput(ns("y_label"), "Y-axis Label", value = "Expression"),
@@ -62,7 +64,7 @@ compareGenesUI <- function(id) {
             sliderInput(ns("facet_font_size"), "Facet Labels Font Size:", min = 8, max = 24, value = 15, step = 1)
           )
         ),
-        os_panel(title = "Size adjustments",
+        os_panel(title = "Size adjustments", collapse = TRUE,
           div(style = "max-height: 200px; overflow-y: auto;",
             sliderInput(ns("plot_width"), "Plot Width (pixels)", min = 400, max = 2000, value = 800, step = 50),
             sliderInput(ns("plot_height"), "Plot Height (pixels)", min = 400, max = 2000, value = 800, step = 50),
@@ -72,14 +74,14 @@ compareGenesUI <- function(id) {
             sliderInput(ns("stat_line_size"), "Statistics Line Thickness:", min = 0, max = 3, value = 0.5, step = 0.1)
           )
         ),
-        os_panel(title = "Grid Controls",
+        os_panel(title = "Grid Controls", collapse = TRUE,
           checkboxInput(ns("show_major_x"), "Show Major Vertical Grid Lines", value = TRUE),
           checkboxInput(ns("show_major_y"), "Show Major Horizontal Grid Lines", value = TRUE),
           checkboxInput(ns("show_minor_x"), "Show Minor Vertical Grid Lines", value = FALSE),
           checkboxInput(ns("show_minor_y"), "Show Minor Horizontal Grid Lines", value = FALSE),
           sliderInput(ns("grid_line_size"), "Grid Line Thickness:", min = 0.1, max = 2, value = 0.2, step = 0.1)
         ),
-        os_panel(title = "Aesthetic Settings",
+        os_panel(title = "Aesthetic Settings", collapse = TRUE,
           downloadButton(ns("download_settings"), "Export Settings"),
           br(), br(),
           fileInput(ns("upload_settings"), "Import Settings", accept = ".json"),
@@ -132,12 +134,6 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL) {
       find_expr_path()
       expr_tbl  <- load_expression(ds(), unit_reactive())
       
-      output$gene_select <- renderUI({
-        selectizeInput(session$ns("genes"), "Select Genes",
-                       choices = NULL,
-                       multiple = TRUE,
-                       options = list(server = TRUE, maxOptions = 1000))
-      })
       updateSelectizeInput(session, "genes",
                            choices = expr_tbl$Symbol,
                            server  = TRUE)

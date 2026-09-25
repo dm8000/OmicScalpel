@@ -5,15 +5,15 @@ dataSummaryUI <- function(id) {
 
     # Left: the whole database, for the datasets you have selected.
     left = tagList(
-      os_panel(title = "Selection",
+      os_panel(title = "Selection", collapse = TRUE,
         selectInput(ns("dataset_selector"), "Select Datasets:",
           choices = NULL, multiple = TRUE, selectize = TRUE
         )
       ),
-      os_panel(title = "Sex Distribution",
+      os_panel(title = "Sex Distribution", collapse = TRUE,
         plotlyOutput(ns("sex_pie"), height = "260px")
       ),
-      os_panel(title = "Age Distribution",
+      os_panel(title = "Age Distribution", collapse = TRUE,
         plotlyOutput(ns("age_hist"), height = "260px")
       )
     ),
@@ -29,14 +29,14 @@ dataSummaryUI <- function(id) {
 
     # Right: the one dataset selected in the table.
     right = tagList(
-      os_panel(title = "Dataset distributions",
+      os_panel(title = "Dataset distributions", collapse = TRUE,
         selectInput(ns("cat_var"), "Categorical", choices = NULL),
         plotlyOutput(ns("ds_pie"), height = "210px"),
         tags$hr(),
         selectInput(ns("num_var"), "Numeric", choices = NULL),
         plotlyOutput(ns("ds_hist"), height = "210px")
       ),
-      os_panel(title = "Selected dataset", class = "os-scroll os-editor",
+      os_panel(title = "Selected dataset", collapse = TRUE, class = "os-scroll os-editor",
         uiOutput(ns("row_editor")),
         actionButton(ns("save_button"), "Save Changes",
                      icon = icon("save"), class = "btn-success")
