@@ -1,0 +1,57 @@
+# Gene symbols that a spreadsheet turned into dates, and what they were.
+#
+# Excel converts SEPT1 to "1-Sep" and MARCH1 to "1-Mar" on the way in, and if
+# the file is saved again it converts those to the serial number the date has
+# internally: 45352 is 2024-03-01, which was MARCH1.
+#
+# Matching is by EXACT LITERAL, never by pattern. DEC1 and SEP15 are real gene
+# symbols -- DEC1 is deleted-in-esophageal-cancer-1 and SEP15 is the old name
+# for SELENOF -- and a regular expression that looks for month names eats both.
+# They are absent from this file on purpose.
+#
+# MARCH, not MARC: both families are destroyed the same way, but MARC has two
+# members and the run found here is 1 to 11 without a gap, which is MARCH.
+#
+# Format:  <as found> | <corrected> | <why>
+
+45352 | MARCH1  | Excel serial, 2024-03-01
+45353 | MARCH2  | Excel serial, 2024-03-02
+45354 | MARCH3  | Excel serial, 2024-03-03
+45355 | MARCH4  | Excel serial, 2024-03-04
+45356 | MARCH5  | Excel serial, 2024-03-05
+45357 | MARCH6  | Excel serial, 2024-03-06
+45358 | MARCH7  | Excel serial, 2024-03-07
+45359 | MARCH8  | Excel serial, 2024-03-08
+45360 | MARCH9  | Excel serial, 2024-03-09
+45361 | MARCH10 | Excel serial, 2024-03-10
+45362 | MARCH11 | Excel serial, 2024-03-11
+45627 | DEC1    | Excel serial, 2024-12-01
+
+1-Sep  | SEPT1  | date text
+2-Sep  | SEPT2  | date text
+3-Sep  | SEPT3  | date text
+4-Sep  | SEPT4  | date text
+5-Sep  | SEPT5  | date text
+6-Sep  | SEPT6  | date text
+7-Sep  | SEPT7  | date text
+8-Sep  | SEPT8  | date text
+9-Sep  | SEPT9  | date text
+10-Sep | SEPT10 | date text
+11-Sep | SEPT11 | date text
+12-Sep | SEPT12 | date text
+13-Sep | SEPT13 | date text
+14-Sep | SEPT14 | date text
+
+1-Mar  | MARCH1  | date text
+2-Mar  | MARCH2  | date text
+3-Mar  | MARCH3  | date text
+4-Mar  | MARCH4  | date text
+5-Mar  | MARCH5  | date text
+6-Mar  | MARCH6  | date text
+7-Mar  | MARCH7  | date text
+8-Mar  | MARCH8  | date text
+9-Mar  | MARCH9  | date text
+10-Mar | MARCH10 | date text
+11-Mar | MARCH11 | date text
+
+1-Dec  | DEC1 | date text

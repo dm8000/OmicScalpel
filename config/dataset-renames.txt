@@ -1,0 +1,31 @@
+# Datasets renamed to first author et al. + year of publication.
+#
+# Only the ones with a publication that could be confirmed. Each was checked
+# against NCBI rather than read off the old nickname, and two of the nicknames
+# turned out not to name the first author at all:
+#
+#   Rozen.BMI          -> the paper is Emont et al. 2022 (Nature). "Rozen" is
+#                         not its first author. PMID 35296864, and GEO
+#                         GSE174475 (43 samples, which matches this dataset).
+#   Bluher.Lynes...    -> Lynes et al. 2017 (Nature Medicine). "Bluher" is not
+#                         the first author either.
+#   Moustafa...2022    -> El-Sayed Moustafa et al. 2022 (Int J Obes). The PMID
+#                         recorded in the sheet, 32817962, is the 2020 medRxiv
+#                         preprint; the published version is PMID 35589964.
+#   Civelek...2017     -> Civelek et al. 2017 (Am J Hum Genet), PMID 28257690,
+#                         GEO GSE70353 (770 samples, matching).
+#   Mirabegron.Leiria  -> Leiria et al. 2019 (Cell Metab), PMID 31353262.
+#
+# GTEX_adipose keeps its name: it is a consortium with no first author, and
+# nobody calls it anything else.
+#
+# The other twelve have no publication and no GEO accession recorded anywhere
+# in the hub. They are left alone.
+#
+# Format:  <current name> | <new name>
+
+Bluher.Lynes.Nat.Med.2017       | Lynes et al. 2017
+Civelek.AmJHuGen.2017           | Civelek et al. 2017
+Mirabegron.Leiria.Cell.Met.2019 | Leiria et al. 2019
+Moustafa.Int.J.Obes.2022        | El-Sayed Moustafa et al. 2022
+Rozen.BMI                       | Emont et al. 2022
