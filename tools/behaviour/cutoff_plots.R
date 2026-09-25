@@ -59,6 +59,17 @@ chk(identical(leg$.value[1], "grp=low"),
     "and low comes first, whatever the alphabet says",
     paste(leg$.value, collapse = " | "))
 
+# The ROC reference line is one diagonal. Written as a segment inheriting the
+# plot data it became one dashed line per candidate cutpoint -- a fan across
+# the panel that hid the curve.
+roc  <- cf_plot_roc(scb, bb$cutoff)
+refs <- Filter(function(d) all(c("slope", "intercept") %in% names(d)),
+               ggplot2::ggplot_build(roc)$data)
+chk(length(refs) == 1 && nrow(refs[[1]]) == 1,
+    "the ROC draws exactly one reference diagonal",
+    "layers: ", length(refs), ", rows: ",
+    if (length(refs)) nrow(refs[[1]]) else 0)
+
 # Refusals, which the tab renders as an empty panel rather than an error.
 chk(is.null(cf_plot_scan(cf_empty_scan("hr"), NA_real_)), "an empty scan draws nothing")
 chk(is.null(cf_plot_roc(sc, bs$cutoff)), "the ROC refuses a survival scan")

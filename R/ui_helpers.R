@@ -203,3 +203,32 @@ os_facet_cols <- function(n, max_cols = 10L) {
 os_facet_rows <- function(n, cols = os_facet_cols(n), max_rows = 10L) {
   min(max(ceiling(max(as.integer(n), 1L) / max(cols, 1L)), 1L), max_rows)
 }
+
+# --- inline help -------------------------------------------------------------
+
+# A "?" that shows a box on hover. Used only by the Cutoff finder for now; the
+# other tabs are in the roadmap (docs/ARCHITECTURE.md).
+#
+# CSS, not JavaScript, and no tooltip library: the box is a child of the mark
+# and appears on :hover and :focus-within, so it also works from the keyboard
+# and cannot get out of step with the control it explains.
+os_help <- function(text) {
+  # Hover shows the box; clicking the mark pins it open. The pin is a hidden
+  # checkbox driving a sibling selector -- the same trick os_panel() uses to
+  # fold -- because :hover alone leaves out anyone on a touch screen or a
+  # keyboard, and :focus turned out to be untestable headless: the element is
+  # document.activeElement and the rule still does not match.
+  cid <- os_next_id("help")
+  tags$span(
+    class = "os-help",
+    tags$input(type = "checkbox", class = "os-help-toggle", id = cid),
+    tags$label(class = "os-help-mark", `for` = cid, title = text,
+               `aria-label` = text, "?"),
+    tags$span(class = "os-help-box", text)
+  )
+}
+
+# Wrap a control so the mark sits at the right edge of its label line.
+os_field <- function(control, help) {
+  tags$div(class = "os-field", control, os_help(help))
+}

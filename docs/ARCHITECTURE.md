@@ -110,3 +110,19 @@ easier to notice, not more likely.
 **The metadata is a spreadsheet.** 2609 rows and 192 columns in an .xlsx that
 the interface rewrites in full on every save. It works, and it is why the
 backups exist.
+
+## Roadmap
+
+**Inline help on the other tabs.** `os_help()` and `os_field()` in
+`R/ui_helpers.R` put a `?` at the right edge of a control's label line and show
+a box on hover and on keyboard focus (CSS only, no tooltip library). Only the
+Cutoff finder uses them so far, because that is the tab where a wrong choice
+produces a plausible-looking wrong number. The rest of the tabs should follow,
+one at a time: the help text is the expensive part, not the markup.
+
+Two rules learned writing the first set. The mark goes next to the control it
+explains, never in the panel title -- `lint_layout.R` reads panel titles as
+text and a mark inside one becomes part of the title. And the text says what
+the choice *does to the result*, not what the widget is: "the unit becomes part
+of the saved column's name" is worth reading, "select the normalization unit"
+is not.

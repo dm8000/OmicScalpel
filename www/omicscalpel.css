@@ -564,3 +564,56 @@ a:focus, input:focus, select:focus, textarea:focus {
   outline-color: var(--os-accent);
   box-shadow: none !important;
 }
+
+/* --- inline help ---------------------------------------------------------- */
+
+.os-field { position: relative; }
+.os-field > .os-help { position: absolute; top: 0; right: 0; }
+
+.os-help { position: relative; display: inline-block; line-height: 1; }
+.os-help-toggle { position: absolute; width: 0; height: 0; opacity: 0; margin: 0; }
+
+.os-help-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  border: 1px solid var(--os-border-2);
+  border-radius: 50%;
+  color: var(--os-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+.os-help:hover .os-help-mark,
+.os-help-toggle:checked + .os-help-mark {
+  color: var(--os-accent);
+  border-color: var(--os-accent);
+}
+
+.os-help-box {
+  display: none;
+  position: absolute;
+  top: 20px;
+  right: 0;
+  z-index: 60;
+  width: 260px;
+  padding: 8px 10px;
+  background: var(--os-surface-2);
+  border: 1px solid var(--os-border-2);
+  border-radius: var(--os-radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+  color: var(--os-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: default;
+}
+.os-help:hover .os-help-box,
+.os-help-toggle:checked ~ .os-help-box { display: block; }

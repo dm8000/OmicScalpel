@@ -91,7 +91,10 @@ cf_plot_roc <- function(scan, chosen = NA_real_) {
 
   p <- ggplot(roc, aes(x = fp, y = tp)) +
     geom_line(colour = OS_PLOT$accent) +
-    geom_segment(aes(xend = 1, yend = 1), linetype = "dashed", colour = OS_PLOT$grid) +
+    # geom_abline, not geom_segment: a segment inherits the plot data and draws
+    # one dashed line per candidate cutpoint, which is a fan, not a diagonal.
+    geom_abline(slope = 1, intercept = 0, linetype = "dashed",
+                colour = OS_PLOT$grid) +
     labs(x = "1 - Specificity", y = "Sensitivity", subtitle = paste0("AUC = ", auc)) +
     coord_equal() +
     os_theme()

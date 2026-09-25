@@ -31,6 +31,11 @@ TRUE_CUT   <- 6          # expression above this has the worse survival
 HAZARD_HI  <- 3          # threefold, so the effect is unmistakable
 MEDIAN_OS  <- 40         # months in the low group
 
+# A second marker whose cutpoint is not the same in both sexes, so the Cutoff
+# finder's split has something real to find: pooled, the two cancel out.
+MARKER2    <- "DEMOMARK2"
+SEX_CUTS   <- c(female = 3, male = 7)
+
 # --- survival for a set of samples -------------------------------------------
 # A marker value per sample, then a survival time whose rate depends on which
 # side of TRUE_CUT it falls. Censoring is independent of everything.
@@ -51,10 +56,19 @@ build_dataset <- function(hub) {
   marker <- round(runif(N_NEW, 0, 10), 3)
   surv   <- demo_survival(marker)
 
-  genes <- c(MARKER, sprintf("DEMOGENE%04d", seq_len(N_GENES - 1)))
+  sex     <- sample(names(SEX_CUTS), N_NEW, replace = TRUE)
+  marker2 <- round(runif(N_NEW, 0, 10), 3)
+  surv2   <- local({
+    hazard <- ifelse(marker2 > SEX_CUTS[sex], HAZARD_HI, 1)
+    list(time  = round(pmax(rexp(N_NEW, rate = hazard / MEDIAN_OS), 0.1), 1),
+         event = rbinom(N_NEW, 1, 0.75))
+  })
+
+  genes <- c(MARKER, MARKER2, sprintf("DEMOGENE%04d", seq_len(N_GENES - 2)))
   mat   <- matrix(round(rlnorm(length(genes) * N_NEW, 1.5, 1.6), 3),
                   nrow = length(genes), dimnames = list(NULL, ids))
   mat[1, ] <- marker                       # the planted marker, as expression
+  mat[2, ] <- marker2                      # the one whose cutpoint depends on sex
   expr <- cbind(Symbol = genes, as.data.frame(mat, check.names = FALSE))
   write.table(expr, file.path(hub, ds, paste0(ds, "_TPM.txt")),
               sep = "\t", quote = FALSE, row.names = FALSE)
@@ -76,6 +90,10 @@ build_dataset <- function(hub) {
     DEMO.OS.time    = surv$time,
     DEMO.OS.event   = surv$event,
     DEMO.Responder  = responder,
+    DEMO.Sex        = sex,
+    DEMO.Marker2    = marker2,
+    DEMO.OS2.time   = surv2$time,
+    DEMO.OS2.event  = surv2$event,
     check.names = FALSE, stringsAsFactors = FALSE
   )
 }
@@ -141,6 +159,8 @@ save_metadata(before, after)
 
 cat("Example3_survival: ", N_NEW, " samples, ", N_GENES, " genes, marker ",
     MARKER, " cut at ", TRUE_CUT, "\n", sep = "")
+cat("  and ", MARKER2, " / DEMO.Marker2, cut at ", SEX_CUTS[["female"]],
+    " in female and ", SEX_CUTS[["male"]], " in male, against DEMO.OS2.*\n", sep = "")
 cat("survival added to: ", paste(unique(existing$dataset), collapse = ", "), "\n", sep = "")
 cat("rows: ", nrow(before), " -> ", nrow(after), "\n", sep = "")
 cat("\nEverything above is invented. Columns are prefixed DEMO. and the new\n")

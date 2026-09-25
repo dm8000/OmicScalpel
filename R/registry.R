@@ -54,8 +54,8 @@ MODULES <- list(
   list(id = "cutoff_finder",        scope = "one",  group = "Explore",
        title = "Cutoff finder",     icon = "scissors",
        ui = "cutoffFinderUI",       server = "cutoffFinderServer",
-       pkgs = c("flexmix", "ggplot2", "survival"),
-       layout = list(left   = c("Variable", "Method"),
+       pkgs = c("flexmix", "ggplot2", "patchwork", "survival"),
+       layout = list(left   = c("Variable", "Method", "Split"),
                      center = c("Cutoff", "Outcome"),
                      right  = c("Result", "Save"))),
 
