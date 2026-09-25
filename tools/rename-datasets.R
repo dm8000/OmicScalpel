@@ -31,9 +31,19 @@ md <- load_metadata()
 su <- tryCatch(load_datasets_summary(), error = function(e) NULL)
 have <- unique(md$dataset)
 
+# Already applied: the old name is gone and the new one is there. The map is a
+# record of every rename ever made, so running this again must be harmless.
+done <- names(renames)[!names(renames) %in% have & unname(renames) %in% have]
+if (length(done)) {
+  cat("already renamed: ", paste(done, collapse = ", "), "\n\n", sep = "")
+  renames <- renames[!names(renames) %in% done]
+}
+if (!length(renames)) { cat("nothing left to rename\n"); quit(status = 0) }
+
 missing <- setdiff(names(renames), have)
 if (length(missing)) {
-  cat("not in the metadata: ", paste(missing, collapse = ", "), "\n", sep = "")
+  cat("neither the old nor the new name is in the metadata: ",
+      paste(missing, collapse = ", "), "\n", sep = "")
   quit(status = 1)
 }
 clash <- intersect(unname(renames), have)

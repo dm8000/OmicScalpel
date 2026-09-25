@@ -19,8 +19,21 @@
 # GTEX_adipose keeps its name: it is a consortium with no first author, and
 # nobody calls it anything else.
 #
-# The other twelve have no publication and no GEO accession recorded anywhere
-# in the hub. They are left alone.
+# Three more were traced from the GEO sample ids in their own SampleID column,
+# which is provenance the sheet never recorded as such:
+#
+#   mice.HFD.chow      -> GSM3082780 belongs to GSE112740, PMID 29642370,
+#                         Cao et al. 2018 (Int J Mol Sci)
+#   mice.old.young...  -> GSM4007560 belongs to GSE135391, PMID 32795388,
+#                         Panic et al. 2020 (eLife)
+#   obese.vs.lean...   -> GSM1223777 belongs to GSE50574, PMID 25518011,
+#                         Ferrante et al. 2015 (Pediatr Res)
+#
+# In all three the lab's own Author column already named that first author,
+# which is a check the three agree on rather than one source repeated.
+#
+# The other nine have neither a publication, a GEO accession, nor GEO sample
+# ids. They are left alone.
 #
 # Format:  <current name> | <new name>
 
@@ -29,3 +42,6 @@ Civelek.AmJHuGen.2017           | Civelek et al. 2017
 Mirabegron.Leiria.Cell.Met.2019 | Leiria et al. 2019
 Moustafa.Int.J.Obes.2022        | El-Sayed Moustafa et al. 2022
 Rozen.BMI                       | Emont et al. 2022
+mice.HFD.chow                   | Cao et al. 2018
+mice.old.young.cold.exposure.24h | Panic et al. 2020
+obese.vs.lean.exossomes         | Ferrante et al. 2015

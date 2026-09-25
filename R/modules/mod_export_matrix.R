@@ -86,7 +86,8 @@ exportMatrixServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       req(ds(), input$file_unit)
       list(
         Metadata = meta(),
-        Expression = load_expression(ds(), input$file_unit)
+        # The selector may still hold the unit of the dataset we just left.
+        Expression = load_expression(ds(), os_valid_unit(ds(), input$file_unit))
       )
     })
     

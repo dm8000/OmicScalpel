@@ -194,6 +194,21 @@ os_write_rounded_matrix <- function(inp, out, chunk = 2000L) {
   list(rounded = TRUE, why = NA_character_, rows = rows)
 }
 
+# The unit to actually read, given the one a control is holding.
+#
+# A unit selector is filled from the dataset, so the moment the dataset changes
+# the control still holds the previous one -- and anything that reads it before
+# the browser answers asks for a file that does not exist. Loading Civelek
+# while TPM was selected killed the session with "no file
+# Civelek et al. 2017_TPM.txt", and the same for McMaster, DoD and El-Sayed,
+# which have units no other dataset has.
+os_valid_unit <- function(dataset, unit = NULL) {
+  units <- tryCatch(list_units(dataset), error = function(e) character(0))
+  if (!length(units)) return(NULL)
+  if (!is.null(unit) && length(unit) == 1L && !is.na(unit) && unit %in% units) return(unit)
+  units[1]
+}
+
 # One gene's row, without reading the matrix.
 #
 # Measured on GTEX_adipose_TMM.txt (402 MB): load_expression() takes 14.1 s and
@@ -204,6 +219,9 @@ os_write_rounded_matrix <- function(inp, out, chunk = 2000L) {
 # gene's numbers and says nothing, which is worse than being slow. The symbol
 # that comes back is checked against the one asked for.
 load_expression_row <- function(dataset, symbols, unit = NULL) {
+  # A control can still be holding the unit of the dataset we just left.
+  unit <- os_valid_unit(dataset, unit)
+  if (is.null(unit)) return(NULL)
   p <- expression_path(dataset, unit)
   if (!file.exists(p) || !length(symbols)) return(NULL)
 
@@ -248,7 +266,8 @@ os_gene_choices <- function(dataset, unit = NULL) {
   idx <- tryCatch(ai_gene_index(), error = function(e) NULL)
   v <- if (!is.null(idx)) idx$datasets[[dataset]] else NULL
   if (!is.null(v) && length(v)) return(unique(v))
-  expr <- tryCatch(load_expression(dataset, unit), error = function(e) NULL)
+  expr <- tryCatch(load_expression(dataset, os_valid_unit(dataset, unit)),
+                   error = function(e) NULL)
   if (is.null(expr) || !"Symbol" %in% names(expr)) return(character(0))
   unique(expr$Symbol)
 }

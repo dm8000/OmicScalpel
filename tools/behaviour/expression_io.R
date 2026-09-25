@@ -94,4 +94,53 @@ chk(is.null(load_expression_row("PREFIX", "NOTAGENE", "TPM")),
 
 Sys.setenv(OMICSCALPEL_CONFIG = old_cfg); invisible(read_config(reload = TRUE))
 
+# --- the unit a control is still holding --------------------------------------
+# Loading a dataset killed the session with "no file
+# Civelek et al. 2017_TPM.txt; this dataset has: TMM". The unit selector is
+# filled from the dataset, so the instant the dataset changes it still holds
+# the previous one, and anything reading it asks for a file that never existed.
+chk(identical(os_valid_unit(DS, "TPM"), "TPM"),
+    "a unit the dataset has is used as asked")
+chk(identical(os_valid_unit("DEMO_Array", "TPM"), "TMM"),
+    "a unit it does not have falls back to one it does",
+    os_valid_unit("DEMO_Array", "TPM"))
+chk(is.null(os_valid_unit("no.such.dataset", "TPM")),
+    "and a dataset with no files at all gives nothing to read")
+chk(!is.null(load_expression_row("DEMO_Array", load_expression("DEMO_Array", "TMM")$Symbol[1], "TPM")),
+    "so a row read survives the unit of the dataset just left")
+
+# The tab that crashed: switch the dataset while the selector holds the old
+# unit, and let every output recompute.
+crashed <- NULL
+testServer(exportMatrixServer,
+           args = list(id = "export_matrix", ds = reactiveVal(DS),
+                       meta = reactive(load_metadata()), go_to = NULL, ai = NULL), {
+  session$setInputs(file_unit = "TPM", genes_list = character(0),
+                    metadata_fields = character(0), do_log = FALSE, do_zscore = FALSE)
+  session$flushReact()
+  crashed <<- tryCatch({
+    ds2 <- get("ds", environment())
+    invisible(NULL)
+  }, error = function(e) conditionMessage(e))
+})
+ok("the export tab starts on a dataset with TPM")
+
+switched <- tryCatch({
+  active <- reactiveVal(DS)
+  testServer(exportMatrixServer,
+             args = list(id = "export_matrix", ds = active,
+                         meta = reactive(load_metadata()), go_to = NULL, ai = NULL), {
+    session$setInputs(file_unit = "TPM", genes_list = character(0),
+                      metadata_fields = character(0), do_log = FALSE, do_zscore = FALSE)
+    session$flushReact()
+    active("DEMO_Array")      # has TMM only; the selector still says TPM
+    session$flushReact()
+    invisible(expr_matrix())
+  })
+  NULL
+}, error = function(e) conditionMessage(e))
+chk(is.null(switched),
+    "and switching to a dataset without that unit does not take the session down",
+    switched)
+
 cat("\n", n, " checks passed\n", sep = "")

@@ -214,7 +214,7 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       req(nrow(sel_meta) > 0)
       samp_ids <- sel_meta$SampleID
       
-      tmm_data <- load_expression(ds(), unit_reactive())
+      tmm_data <- load_expression(ds(), os_valid_unit(ds(), unit_reactive()))
       
       df_list <- lapply(input$genes, function(g) {
         gd <- tmm_data %>% filter(Symbol == g) %>% select(-Symbol)
@@ -493,7 +493,7 @@ compareSamplesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       req(nrow(sel_meta) > 0)
       samp_ids <- sel_meta$SampleID
       
-      tmm_data <- load_expression(ds(), unit_reactive())
+      tmm_data <- load_expression(ds(), os_valid_unit(ds(), unit_reactive()))
       
       results <- do.call(rbind, lapply(input$genes, function(gene) {
         gene_data <- tmm_data %>%

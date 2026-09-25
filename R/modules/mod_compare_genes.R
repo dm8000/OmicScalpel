@@ -215,7 +215,7 @@ compareGenesServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
       samp_ids  <- sel_meta$SampleID
       
       find_expr_path()
-      expr_tbl  <- load_expression(ds(), unit_reactive())
+      expr_tbl  <- load_expression(ds(), os_valid_unit(ds(), unit_reactive()))
       
       df_list <- lapply(input$genes, function(g) {
         gd <- expr_tbl %>% filter(Symbol == g) %>% select(-Symbol)
