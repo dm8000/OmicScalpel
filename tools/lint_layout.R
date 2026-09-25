@@ -89,8 +89,12 @@ for (m in mods) {
   }
 
   cols <- top_columns(ui)
-  if (length(cols) != 3L) {
-    bad <- bad + 1L; say(m$id, ": expected three top-level columns, found ", length(cols)); next
+  # A module with nothing on the right gets two columns rather than an empty
+  # third, and os_layout folds the spare width into the middle.
+  want_cols <- if (length(m$layout$right)) 3L else 2L
+  if (length(cols) != want_cols) {
+    bad <- bad + 1L
+    say(m$id, ": expected ", want_cols, " top-level columns, found ", length(cols)); next
   }
 
   # the three widest top-level columns, in document order, are left/center/right
@@ -105,9 +109,9 @@ for (m in mods) {
   }
 
   problems <- character(0)
-  sides <- c("left", "center", "right")
+  sides <- if (want_cols == 3L) c("left", "center", "right") else c("left", "center")
   seen  <- character(0)
-  for (i in seq_len(3)) {
+  for (i in seq_along(sides)) {
     want <- m$layout[[sides[i]]]
     got  <- three[[i]]$titles
     seen <- c(seen, got)

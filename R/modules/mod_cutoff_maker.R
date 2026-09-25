@@ -94,6 +94,12 @@ cutoffMakerServer <- function(id, ds, meta, go_to = NULL) {
     
     observe({
       data <- meta()
+      # The legacy did this on load. The shared loader keeps the spreadsheet's
+      # literal "NA" by default, because most of the app compares against that
+      # string -- but here it is fatal: a column holding one "NA" fails the
+      # numeric test, which rejected every column and left the tab with nothing
+      # to cut on.
+      data[data == "NA"] <- NA
       rv$data <- data
       update_numeric_cols(data)
     })

@@ -69,9 +69,9 @@ MODULES <- list(
        title = "Edit metadata",     icon = "pen-to-square",
        ui = "metadataEditorUI",     server = "metadataEditorServer",
        pkgs = c("datamods", "DT"),
-       layout = list(left   = c("Columns"),
+       layout = list(left   = c("Columns", "Upload & Save"),
                      center = c("Metadata"),
-                     right  = c("Upload & Save"))),
+                     right  = character(0))),
 
   list(id = "cutoff_maker",         scope = "one",  group = "Manage",
        title = "Cutoffs",           icon = "sliders",

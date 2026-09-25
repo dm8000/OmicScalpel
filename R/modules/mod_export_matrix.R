@@ -22,7 +22,9 @@ exportMatrixUI <- function(id) {
     left = tagList(
       os_panel(title = "Selection", collapse = TRUE,
         uiOutput(ns("unit_ui")),
-        selectizeInput(ns("genes_list"), "Select genes:", choices = NULL, multiple = TRUE),
+        selectizeInput(ns("genes_list"), "Select genes:", choices = NULL,
+                       multiple = TRUE,
+                       options = list(server = TRUE, maxOptions = 1000)),
         helpText("Leave empty to include all genes"),
         hr(),
         h4("Metadata options"),
@@ -106,8 +108,8 @@ exportMatrixServer <- function(id, ds, meta, go_to = NULL) {
       if (length(genes) > 0) {
         mat <- mat[rownames(mat) %in% genes, , drop = FALSE]
       }
-      if (input$do_log) mat <- log2(mat + 0.001)
-      if (input$do_zscore) mat <- t(scale(t(mat)))
+if (isTRUE(input$do_log)) mat <- log2(mat + 0.001)
+      if (isTRUE(input$do_zscore)) mat <- t(scale(t(mat)))
       mat
     })
     

@@ -74,6 +74,17 @@ testServer(app = ".", expr = {
       "the fallback is a dataset that exists", active_dataset())
 })
 
+# Collapsible panels are driven by a hidden checkbox and a <label for=...>,
+# which acts on the first element with that id. Deriving the id from the panel
+# title gave 76 panels 22 ids -- "Labels" exists in three modules -- so folding
+# one tab's panel folded a hidden one in another and the click appeared to do
+# nothing.
+cids <- regmatches(html, gregexpr('id="os-c-[^"]+"', html))[[1]]
+chk(length(cids) == length(unique(cids)),
+    "every collapsible panel has its own id",
+    length(cids) - length(unique(cids)), " duplicated")
+chk(length(cids) > 20, "and there are collapsible panels to check", length(cids))
+
 # Last, because it only holds once every module has stopped building its own
 # page: a leftover tab shows up here as an extra pane. Counts tabsetPanel's
 # markup -- shinydashboard's id="shiny-tab-" is gone with dashboardPage.
