@@ -60,6 +60,14 @@ testServer(
     e <- tryCatch({ output$ds_pie; output$ds_hist; NULL }, error = function(e) conditionMessage(e))
     chk(is.null(e), "both per-dataset plots render", e)
 
+    # A derived column must not be offered as a field: the table recomputes it
+    # from the hub and the metadata on every load, so an edit would be silently
+    # discarded. Tissue was editable and is summarised from the sample
+    # metadata -- typing there looked like it worked and never survived.
+    chk("Tissue" %in% DERIVED && "Species" %in% DERIVED,
+        "columns summarised from the metadata are not editable")
+    chk("Sample_size" %in% DERIVED, "nor are the ones counted from the hub")
+
     # the editor writes back only the selected dataset's row, only what changed
     before <- summary_data()
     field  <- setdiff(names(before), DERIVED)[1]

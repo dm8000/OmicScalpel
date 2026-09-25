@@ -344,5 +344,57 @@ table.dataTable tbody > tr.selected > * {
    letting it push the distributions off the bottom of the page. Scoped to the
    editor: applied to every right-hand panel it also made the plots scroll. */
 .os-panel.os-scroll > .os-panel-body { max-height: 46vh; overflow-y: auto; }
-.os-right .form-group { margin-bottom: 6px; }
-.os-right .control-label { font-size: 10px; }
+/* Compact fields: the label sits beside its input instead of above it, which
+   roughly halves the height of a panel holding one field per column. Scoped to
+   the editor so the rest of the app keeps normal form spacing. */
+.os-editor .form-group.shiny-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+  width: 100% !important;
+}
+
+.os-editor .form-group > label,
+.os-editor .form-group > .control-label {
+  flex: 0 0 44%;
+  margin: 0;
+  text-align: right;
+  font-size: 10px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.os-editor .form-group > input,
+.os-editor .form-group > div,
+.os-editor .form-group > .selectize-control {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.os-editor .form-control {
+  height: 26px;
+  padding: 2px 7px;
+  font-size: 12px;
+}
+
+/* the read-only block: derived values, grouped, denser than the fields */
+.os-readonly-block {
+  background: var(--os-surface-2);
+  border: 1px solid var(--os-border);
+  border-radius: var(--os-radius);
+  padding: 4px 8px;
+  margin-bottom: 10px;
+}
+.os-readonly-block .os-readonly { padding: 1px 0; border-bottom: none; }
+.os-readonly-block .os-readonly + .os-readonly {
+  border-top: 1px solid rgba(255, 255, 255, .04);
+}
+
+.os-editor .os-section { margin-top: 0; }
+.os-editor .os-computed-head {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--os-border);
+}

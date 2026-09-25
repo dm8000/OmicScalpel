@@ -17,7 +17,7 @@ MODULES <- list(
        pkgs = c("datamods", "dplyr", "DT", "forcats", "ggplot2", "openxlsx", "plotly", "RColorBrewer"),
        layout = list(left   = c("Selection", "Sex Distribution", "Age Distribution"),
                      center = c("Dataset Summary"),
-                     right  = c("Selected dataset", "Dataset distributions"))),
+                     right  = c("Dataset distributions", "Selected dataset"))),
 
   list(id = "compare_genes",        scope = "one",  group = "Explore",
        title = "Compare genes",     icon = "chart-bar",

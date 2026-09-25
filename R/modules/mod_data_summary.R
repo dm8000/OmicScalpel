@@ -29,17 +29,17 @@ dataSummaryUI <- function(id) {
 
     # Right: the one dataset selected in the table.
     right = tagList(
-      os_panel(title = "Selected dataset", class = "os-scroll",
+      os_panel(title = "Dataset distributions",
+        selectInput(ns("cat_var"), "Categorical", choices = NULL),
+        plotlyOutput(ns("ds_pie"), height = "210px"),
+        tags$hr(),
+        selectInput(ns("num_var"), "Numeric", choices = NULL),
+        plotlyOutput(ns("ds_hist"), height = "210px")
+      ),
+      os_panel(title = "Selected dataset", class = "os-scroll os-editor",
         uiOutput(ns("row_editor")),
         actionButton(ns("save_button"), "Save Changes",
                      icon = icon("save"), class = "btn-success")
-      ),
-      os_panel(title = "Dataset distributions",
-        selectInput(ns("cat_var"), "Categorical", choices = NULL),
-        plotlyOutput(ns("ds_pie"), height = "220px"),
-        tags$hr(),
-        selectInput(ns("num_var"), "Numeric", choices = NULL),
-        plotlyOutput(ns("ds_hist"), height = "220px")
       )
     )
   )
@@ -283,9 +283,17 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
     # The selected row's fields, as labelled inputs. Derived columns are shown
     # but not editable: sample size and the has-this-file flags are computed
     # from the hub, so typing over them would be overwritten on the next read.
+    # Columns the table recomputes on every load, so typing over them would be
+    # thrown away at the next read. Two groups: what is counted from the hub
+    # (sample size, which files exist) and what is summarised from the sample
+    # metadata (species, tissue, cell type and the rest of cols_map). Editing
+    # those means editing the metadata, in the Edit metadata tab.
     DERIVED <- c("dataset", "Sample_size",
                  "Has.TMM.normalized.data", "Has.TPM.normalized.data",
-                 "Has.count.data", "Has.Combat.batch.corrected.data")
+                 "Has.count.data", "Has.Combat.batch.corrected.data",
+                 "Fellow who generated/uploaded dataset",
+                 "Species", "Cell.type", "Tissue", "Strain",
+                 "Anatomical_region", "Data_avaiability", "Data.type")
 
     output$row_editor <- renderUI({
       d <- selected_dataset()
@@ -294,20 +302,36 @@ dataSummaryServer <- function(id, ds, meta, go_to = NULL) {
       }
       df  <- summary_data()
       row <- df[df$dataset == d, , drop = FALSE][1, ]
+      shown <- function(cn) {
+        val <- as.character(row[[cn]])
+        if (is.na(val)) "" else val
+      }
+
+      # The derived ones first, as one tight block: they are read-only, so
+      # scattering them between the editable fields only made the fields
+      # harder to scan.
+      derived <- intersect(DERIVED, names(row))
+      editable <- setdiff(names(row), derived)
+
+      # Editable first: they are what this panel is for. The computed ones go
+      # underneath, grouped and labelled, so it is clear why they cannot be
+      # typed into rather than looking like fields that ignore you.
       tagList(
         tags$div(class = "os-section", d),
-        lapply(names(row), function(cn) {
-          val <- as.character(row[[cn]])
-          if (is.na(val)) val <- ""
-          if (cn %in% DERIVED) {
+        lapply(editable, function(cn) {
+          textInput(session$ns(paste0("f_", cn)), cn, value = shown(cn), width = "100%")
+        }),
+        tags$div(class = "os-section os-computed-head", "Computed \u2014 not editable"),
+        tags$div(
+          class = "os-readonly-block",
+          lapply(derived, function(cn) {
+            v <- shown(cn)
             tags$div(class = "os-readonly",
                      tags$span(class = "os-readonly-label", cn),
                      tags$span(class = "os-readonly-value",
-                               if (nzchar(val)) val else "\u2014"))
-          } else {
-            textInput(session$ns(paste0("f_", cn)), cn, value = val, width = "100%")
-          }
-        })
+                               if (nzchar(v)) v else "\u2014"))
+          })
+        )
       )
     })
 
