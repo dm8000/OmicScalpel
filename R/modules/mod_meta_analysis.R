@@ -39,8 +39,14 @@ metaAnalysisUI <- function(id) {
           )
         ),
         h4("Filter Conditions (Optional)"),
+        helpText("Filtering removes samples: the analysis runs on the ones you keep."),
         selectInput(ns("filter_conditions"), "Select filter conditions:", choices = NULL, multiple = TRUE),
         uiOutput(ns("filter_ui")),
+        h4("Adjust For (Optional)"),
+        helpText("Adjusting keeps every sample and accounts for the variable instead: ",
+                 "the effect reported is the group difference once it is held constant."),
+        selectInput(ns("adjust_for"), "Adjust for:", choices = NULL, multiple = TRUE),
+        uiOutput(ns("adjust_note")),
         h4("Data Preferences"),
         selectInput(ns("data_preference"), "Data type preference:",
                     choices = list(
@@ -127,6 +133,11 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
         condition_choices <- setdiff(names(metadata()), exclude_cols)
         updateSelectInput(session, "condition", choices = condition_choices)
         updateSelectInput(session, "filter_conditions", choices = condition_choices)
+        # the same columns can be adjusted for, minus the one being compared:
+        # putting the grouping variable in the model would explain the effect
+        # away by construction
+        updateSelectInput(session, "adjust_for",
+                          choices = setdiff(condition_choices, input$condition))
       }
     })
     
@@ -175,6 +186,25 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
       }
     })
     
+    # A covariate that does not vary inside a dataset cannot be adjusted for
+    # there. The dataset still contributes, without that term -- which is a
+    # different model from the others, so it is said out loud rather than left
+    # for someone to infer from the forest plot.
+    output$adjust_note <- renderUI({
+      res <- tryCatch(perform_analysis(), error = function(e) NULL)
+      if (is.null(res) || !length(res)) return(NULL)
+      dropped <- unique(unlist(lapply(res, function(r) r$adjust_dropped)))
+      if (!length(dropped)) return(NULL)
+      who <- vapply(res, function(r) if (length(r$adjust_dropped)) r$dataset else NA_character_,
+                    character(1))
+      helpText(
+        style = "color: #d98e3a;",
+        paste0("Not adjusted for ", paste(dropped, collapse = ", "),
+               " in ", paste(stats::na.omit(who), collapse = ", "),
+               ": it does not vary there.")
+      )
+    })
+
     output$filter_ui <- renderUI({
       if (is.null(input$filter_conditions) || length(input$filter_conditions) == 0) {
         return(NULL)
@@ -286,6 +316,73 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
       return(list(d = cohens_d, se = se_d))
     }
     
+    # ---- adjusted effect ------------------------------------------------
+    #
+    # Filtering answers "look only at the women". Adjusting answers "what is
+    # the effect once sex is accounted for", keeping every sample. Within this
+    # pipeline that means replacing the raw difference with the group
+    # coefficient of
+    #
+    #     lm(expression ~ group + covariate1 + covariate2 + ...)
+    #
+    # and standardising it the same way Cohen's d is standardised, so the
+    # forest plot stays on one scale: the coefficient and its standard error
+    # are divided by the model's residual SD -- the within-group spread once
+    # the covariates are accounted for. With no covariates this reduces to the
+    # usual two-group standardised mean difference.
+    #
+    # The p-value comes from the same model. Using the unadjusted t-test
+    # beside an adjusted effect would report a test of a different hypothesis.
+
+    adjusted_effect <- function(expr, group, covars) {
+      df <- data.frame(expr = expr, group = factor(group, levels = c("g1", "g2")))
+      usable <- character(0)
+
+      for (nm in names(covars)) {
+        v <- covars[[nm]]
+        num <- suppressWarnings(as.numeric(as.character(v)))
+        v <- if (mean(!is.na(num)) > 0.8) num else factor(as.character(v))
+        # A covariate that does not vary in this dataset explains nothing and
+        # makes the model rank-deficient. Dropped here, reported to the user.
+        if (length(unique(v[!is.na(v)])) < 2) next
+        df[[nm]] <- v
+        usable <- c(usable, nm)
+      }
+
+      keep <- stats::complete.cases(df)
+      df   <- df[keep, , drop = FALSE]
+      if (nlevels(droplevels(df$group)) < 2) return(NULL)
+      if (sum(df$group == "g1") < 2 || sum(df$group == "g2") < 2) return(NULL)
+
+      # one parameter per covariate level, plus the intercept and the group
+      n_par <- 2 + sum(vapply(usable, function(nm) {
+        v <- df[[nm]]; if (is.factor(v)) nlevels(droplevels(v)) - 1 else 1
+      }, numeric(1)))
+      if (nrow(df) <= n_par + 1) return(NULL)
+
+      fml <- stats::as.formula(
+        paste("expr ~ group", if (length(usable)) paste("+", paste(usable, collapse = " + ")) else "")
+      )
+      fit <- tryCatch(stats::lm(fml, data = df), error = function(e) NULL)
+      if (is.null(fit)) return(NULL)
+
+      co <- tryCatch(summary(fit)$coefficients, error = function(e) NULL)
+      if (is.null(co) || !("groupg2" %in% rownames(co))) return(NULL)
+
+      resid_sd <- stats::sigma(fit)
+      if (!is.finite(resid_sd) || resid_sd == 0) return(NULL)
+
+      list(
+        d       = unname(co["groupg2", "Estimate"]) / resid_sd,
+        se      = unname(co["groupg2", "Std. Error"]) / resid_sd,
+        pvalue  = unname(co["groupg2", "Pr(>|t|)"]),
+        used    = usable,
+        dropped = setdiff(names(covars), usable),
+        n1      = sum(df$group == "g1"),
+        n2      = sum(df$group == "g2")
+      )
+    }
+
     perform_analysis <- eventReactive(input$generate_plot, {
       req(input$biomolecule, input$condition, metadata())
       
@@ -353,22 +450,63 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
           transform_used <- "log2(x + 0.001)"
         }
         
+        # keep the per-sample vectors: the adjusted path needs each value to
+        # stay paired with the sample it came from
+        expr1_trans <- group1_expr_trans
+        expr2_trans <- group2_expr_trans
+
         group1_expr_trans <- group1_expr_trans[!is.na(group1_expr_trans)]
         group2_expr_trans <- group2_expr_trans[!is.na(group2_expr_trans)]
         if (length(group1_expr_trans) < 2 || length(group2_expr_trans) < 2) next
         
-        test_result <- tryCatch({
-          if (input$stat_test == "ttest") {
-            t.test(group2_expr_trans, group1_expr_trans)
-          } else {
-            wilcox.test(group2_expr_trans, group1_expr_trans)
-          }
-        }, error = function(e) NULL)
-        if (is.null(test_result)) next
-        pvalue <- test_result$p.value
-        
-        effect_result <- calculate_cohens_d(group1_expr_trans, group2_expr_trans)
-        if (is.na(effect_result$d)) next
+        adjust_cols <- input$adjust_for
+        adjust_used <- character(0)
+        adjust_dropped <- character(0)
+        n1_used <- NA_integer_; n2_used <- NA_integer_
+
+        if (length(adjust_cols)) {
+          # One model on the pooled samples of this dataset, with the group as
+          # the term of interest. The samples have to line up with the
+          # expression values in the same order they were read.
+          # Each sample keeps its covariates, so the model rows line up with
+          # the expression values. Dropping NAs first, as the unadjusted path
+          # does, would break that correspondence silently.
+          all_ids   <- c(available_samples1, available_samples2)
+          all_expr  <- c(expr1_trans, expr2_trans)
+          all_group <- c(rep("g1", length(available_samples1)),
+                         rep("g2", length(available_samples2)))
+
+          rows   <- match(all_ids, meta_all$SampleID)
+          covars <- lapply(adjust_cols, function(cn) {
+            v <- as.character(meta_all[[cn]][rows])
+            v[v == "NA"] <- NA          # the spreadsheet writes missing as text
+            v
+          })
+          names(covars) <- adjust_cols
+
+          fit <- adjusted_effect(all_expr, all_group, covars)
+          if (is.null(fit)) next
+
+          effect_result  <- list(d = fit$d, se = fit$se)
+          pvalue         <- fit$pvalue
+          adjust_used    <- fit$used
+          adjust_dropped <- fit$dropped
+          n1_used        <- fit$n1
+          n2_used        <- fit$n2
+        } else {
+          test_result <- tryCatch({
+            if (input$stat_test == "ttest") {
+              t.test(group2_expr_trans, group1_expr_trans)
+            } else {
+              wilcox.test(group2_expr_trans, group1_expr_trans)
+            }
+          }, error = function(e) NULL)
+          if (is.null(test_result)) next
+          pvalue <- test_result$p.value
+
+          effect_result <- calculate_cohens_d(group1_expr_trans, group2_expr_trans)
+          if (is.na(effect_result$d)) next
+        }
         
         results[[dataset]] <- list(
           dataset     = dataset,
@@ -376,8 +514,12 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL) {
           effect_size = effect_result$d,
           se          = effect_result$se,
           pvalue      = pvalue,
-          n_group1    = length(group1_expr_trans),
-          n_group2    = length(group2_expr_trans),
+          n_group1    = if (length(adjust_used) || length(adjust_dropped)) n1_used
+                        else length(group1_expr_trans),
+          n_group2    = if (length(adjust_used) || length(adjust_dropped)) n2_used
+                        else length(group2_expr_trans),
+          adjusted    = adjust_used,
+          adjust_dropped = adjust_dropped,
           data_type   = input$data_preference,
           filter_info = filter_info
         )
