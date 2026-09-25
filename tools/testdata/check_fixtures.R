@@ -14,7 +14,18 @@ root <- os_root()
 fix  <- file.path(root, "data-sample")
 fail <- function(...) { cat("FAIL: ", ..., "\n", sep = ""); quit(status = 1) }
 
-real_meta <- as.data.frame(read_excel(file.path(root, "Metadata.xlsx"), .name_repair = "minimal"))
+# The real spreadsheets live in the hub, not in the project root. This check
+# can only run where the real data is: it proves the fixture contains none of
+# it, which is meaningless if there is nothing to compare against -- and
+# comparing data-sample with itself would report every one of its own names as
+# a leak.
+real_path <- os_path("hubdata", "Metadata.xlsx")
+if (normalizePath(dirname(real_path), mustWork = FALSE) ==
+    normalizePath(fix, mustWork = FALSE) || !file.exists(real_path)) {
+  cat("skipped: no real hub on this machine to compare against (", real_path, ")\n", sep = "")
+  quit(status = 0)
+}
+real_meta <- as.data.frame(read_excel(real_path, .name_repair = "minimal"))
 fx_meta   <- as.data.frame(read_excel(file.path(fix,  "Metadata.xlsx"), .name_repair = "minimal"))
 fx_summ   <- as.data.frame(read_excel(file.path(fix,  "Datasets_summary.xlsx"), .name_repair = "minimal"))
 

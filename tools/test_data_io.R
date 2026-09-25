@@ -53,6 +53,16 @@ chk(!identical(u1, u2), "two datasets give two different unit sets",
     paste(u1, collapse = "+"), " vs ", paste(u2, collapse = "+"))
 chk(length(list_units("no_such_dataset")) == 0, "unknown dataset has no units")
 
+# A file matching <dataset>_<unit>.txt that is not an expression matrix must
+# not be offered as a unit. The real hub has GTEX_adipose_meta.txt -- sample
+# metadata -- which was showing up as a normalization unit called "meta".
+fake <- file.path(tmp, "hub", "DEMO_RNAseq", "DEMO_RNAseq_meta.txt")
+writeLines(c("\t#CLASS:Sex\t#CLASS:Age", "S1\tfemale\t50"), fake)
+chk(!("meta" %in% list_units("DEMO_RNAseq")),
+    "a metadata file is not offered as a normalization unit",
+    paste(list_units("DEMO_RNAseq"), collapse = ", "))
+unlink(fake)
+
 # --- expression: values, not shapes -----------------------------------------
 e <- load_expression("DEMO_RNAseq")                       # no unit -> first preferred
 direct <- read.delim(file.path(tmp, "hub", "DEMO_RNAseq", "DEMO_RNAseq_TPM.txt"),

@@ -62,6 +62,7 @@ step "data layer" Rscript tools/test_data_io.R
 step "modules start" Rscript tools/smoke_test.R
 
 for b in tools/behaviour/*.R; do
+  case "$(basename "$b")" in _*) continue;; esac
   [ -e "$b" ] || continue
   step "behaviour: $(basename "$b" .R)" Rscript "$b"
 done

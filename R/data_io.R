@@ -23,6 +23,12 @@ SUMMARY_FILE  <- "Datasets_summary.xlsx"
 UNIT_PREFERENCE <- c("TMM", "CPM", "TPM", "FPKM", "count", "counts",
                      "combat", "unknown_unit")
 
+# Suffixes that match <dataset>_<unit>.txt but are not expression matrices.
+# GTEX_adipose_meta.txt is sample metadata -- 870 rows of #CLASS: columns --
+# and was being offered as a normalization unit called "meta". Choosing it
+# would have loaded metadata as if it were expression.
+UNIT_EXCLUDE <- c("meta", "metadata", "samples", "series_matrix")
+
 metadata_path <- function() os_path("hubdata", METADATA_FILE)
 summary_path  <- function() os_path("hubdata", SUMMARY_FILE)
 
@@ -84,6 +90,7 @@ list_units <- function(dataset) {
   if (!dir.exists(dir)) return(character())
   files <- list.files(dir, pattern = paste0("^", dataset, "_.*\\.txt$"))
   units <- sub(paste0("^", dataset, "_(.*)\\.txt$"), "\\1", files)
+  units <- setdiff(units, UNIT_EXCLUDE)
   c(intersect(UNIT_PREFERENCE, units), sort(setdiff(units, UNIT_PREFERENCE)))
 }
 
@@ -143,7 +150,12 @@ log_download <- function(...) {
 .metadata_version_val <- function() {
   v <- getOption("omicscalpel.metadata_version")
   if (is.null(v)) {
-    v <- shiny::reactiveVal(0L)
+    # withReactiveDomain(NULL): a reactiveVal captures the session it is created
+    # in, and this one outlives any single session because it lives in
+    # options(). Created inside the first session, it dies with that session and
+    # every later one fails with "its module session has been destroyed" -- the
+    # app works for the first browser to connect and is broken for the second.
+    v <- shiny::withReactiveDomain(NULL, shiny::reactiveVal(0L))
     options(omicscalpel.metadata_version = v)
   }
   v

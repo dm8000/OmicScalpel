@@ -6,7 +6,7 @@
 # identity: dataset names, sample ids and every free-text column are replaced.
 # Nothing that could name a subject, a study or a person survives.
 #
-# Usage: Rscript tools/make-fixtures.R [SOURCE_DIR]   (default: project root)
+# Usage: Rscript tools/make-fixtures.R [SOURCE_DIR]   (default: the hub)
 
 suppressMessages({ library(readxl); library(writexl) })
 
@@ -15,7 +15,7 @@ here <- dirname(sub("^--file=", "", grep("^--file=", args, value = TRUE)[1]))
 source(file.path(here, "..", "R", "config.R"))
 
 pos <- commandArgs(TRUE)
-src <- if (length(pos)) pos[1] else os_root()
+src <- if (length(pos)) pos[1] else os_path("hubdata")
 out <- file.path(os_root(), "data-sample")
 
 N_SAMPLES <- 20L

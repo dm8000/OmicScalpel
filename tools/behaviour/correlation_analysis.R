@@ -10,6 +10,8 @@
 #   Rscript tools/behaviour/correlation_analysis.R
 
 source("global.R")
+source("tools/behaviour/_fixture.R")
+use_fixture_hub()
 
 n <- 0L
 ok  <- function(w) { n <<- n + 1L; cat("  ok  ", w, "\n", sep = "") }

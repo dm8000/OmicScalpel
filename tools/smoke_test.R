@@ -45,10 +45,13 @@ for (m in built) {
     }
   }
 
-  # Instantiate against each dataset in turn: a module that silently works for
-  # one dataset only would otherwise pass.
+  # Instantiate against more than one dataset: a module that silently works for
+  # one dataset only would otherwise pass. Three is enough to show that, and
+  # against the real hub "all of them" means 17 datasets times nine modules,
+  # several of which load a 54,000 x 869 matrix.
+  probe <- if (length(datasets) <= 3) datasets else datasets[c(1, 2, length(datasets))]
   if (!length(problems)) {
-    for (d in datasets) {
+    for (d in probe) {
       e <- tryCatch({
         shiny::testServer(
           get(m$server),
