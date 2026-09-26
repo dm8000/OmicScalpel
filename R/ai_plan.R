@@ -336,6 +336,8 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   # model's second choice. That is not guessing twice: a choice answer is a
   # distribution, and when the most likely reading leaves no data the next one
   # is the model's own opinion, not ours.
+  near_miss <- character(0)
+
   attempt <- function(variable, keep, tr) {
   n_before <- length(keep)
   var_kind <- NA_character_
@@ -346,6 +348,7 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
     # every one of them is Male, so there is nothing to compare.
     flat <- Filter(function(d) variable %in% catalog[[d]]$recorded &&
                                !variable %in% names(catalog[[d]]$variables), keep)
+    near_miss <<- flat
     keep <- keep[vapply(catalog[keep], function(d) variable %in% names(d$variables), logical(1))]
     kinds <- unique(vapply(catalog[keep], function(d) d$variables[[variable]]$kind,
                            character(1)))
@@ -435,13 +438,34 @@ ai_decide <- function(answers, catalog, genes, index = ai_gene_index(),
   if (isTRUE(plan$ok) && length(keep) == 1L && n_before > 1L) {
     reasons <- character(0)
     if (!identical(variable, "none")) {
-      reasons <- c(reasons, sprintf("records %s varying", variable))
+      reasons <- c(reasons, sprintf("has more than one %s to compare", variable))
     }
     if (!identical(gene, "none")) reasons <- c(reasons, sprintf("measures %s", gene))
     if (length(reasons)) {
       plan$note <- sprintf(
         "%s is the only dataset here that %s, so any question of this shape lands on it.",
         keep, paste(reasons, collapse = " and "))
+
+      # Name the ones that came close and say what stopped them. "Civelek
+      # records Sex" is not the point; "every one of its 770 samples is male"
+      # is.
+      if (length(near_miss) && !identical(variable, "none")) {
+        # The one that also has the gene is the one being wondered about:
+        # Civelek has IL6 and 770 samples, and is the obvious "why not that
+        # one?". Biggest first after that.
+        has_gene <- if (identical(gene, "none")) character(0)
+                    else ai_datasets_with_gene(gene, index)
+        near_miss <- near_miss[order(!near_miss %in% has_gene,
+                                     -vapply(catalog[near_miss],
+                                             function(d) as.numeric(d$n), numeric(1)))]
+        said <- vapply(utils::head(near_miss, 2), function(d) {
+          v <- catalog[[d]]$constant[[variable]]
+          if (is.null(v)) sprintf("%s records %s but not in a way that can be compared", d, variable)
+          else sprintf("%s records %s too, but every one of its %d samples is %s",
+                       d, variable, catalog[[d]]$n, v)
+        }, character(1))
+        plan$note <- paste0(plan$note, " ", paste(said, collapse = "; "), ".")
+      }
     }
   }
   plan

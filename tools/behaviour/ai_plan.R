@@ -23,7 +23,7 @@ num <- function(col, lo, hi, n = 50) list(column = col, kind = "numeric", n = n,
 cat_ <- function(col, levels, n = 50) list(column = col, kind = "categorical", n = n,
                                            levels = levels, more = 0L, about = col)
 ds <- function(name, n, species, tissue, type, units, vars,
-               demo = FALSE, recorded = character(0)) {
+               demo = FALSE, recorded = character(0), constant = list()) {
   nm <- vapply(vars, function(v) v$column, character(1))
   list(dataset = name, n = n, species = species, tissue = tissue,
        data_type = type, cell_type = "adipocytes", units = units,
@@ -31,6 +31,7 @@ ds <- function(name, n, species, tissue, type, units, vars,
        measures_genes = ai_measures_genes(type),
        # columns with a value, varying or not
        recorded = unique(c(nm, recorded)),
+       constant = constant,
        variables = stats::setNames(vars, nm))
 }
 
@@ -54,7 +55,7 @@ CAT <- list(
      list(num("BMI", 19, 41), cat_("Sex", c("Female", "Male")))),
   # records Sex, and every sample is Male: nothing to compare
   ds("HumanE", 500, "HSA", "Adipose", "RNAseq", "TMM",
-     list(num("BMI", 20, 50)), recorded = "Sex"),
+     list(num("BMI", 20, 50)), recorded = "Sex", constant = list(Sex = "Male")),
   # invented data, with the gene nothing else has
   ds("DemoZ", 100, "HSA", "Adipose", "RNAseq", "TPM",
      list(cat_("Sex", c("female", "male"))), demo = TRUE)
@@ -246,6 +247,12 @@ chk(isTRUE(sx$ok) && length(sx$datasets) == 1 && !is.null(sx$note),
     "when one dataset was the only option the answer says so",
     sx$note %||% "(no note)")
 chk(grepl("only dataset", sx$note), "in the answer itself, not just the trace", sx$note)
+chk(!grepl("varying", sx$note),
+    "in words, not in jargon -- \"records Sex varying\" says nothing to a reader",
+    sx$note)
+chk(grepl("HumanE", sx$note) && grepl("every one of its 500 samples is Male", sx$note),
+    "and it names the dataset that came closest, and what stopped it",
+    sx$note)
 
 # --- invented data, when it is the only place the gene exists ------------------
 only <- plan_of(intent = choice("expression_level"), variable = choice("none"),

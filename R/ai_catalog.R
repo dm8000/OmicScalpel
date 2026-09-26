@@ -222,6 +222,15 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
     recorded <- names(rows)[vapply(names(rows), function(cn) length(ai_real(rows[[cn]])) > 0,
                                    logical(1))]
 
+    # For a column that is recorded but never varies, the single value it takes.
+    # "Civelek records Sex" and "every one of its 770 samples is male" are
+    # different sentences, and only the second one answers "why not Civelek?".
+    constant <- list()
+    for (cn in recorded) {
+      v <- unique(ai_real(rows[[cn]]))
+      if (length(v) == 1L) constant[[cn]] <- v
+    }
+
     # Follow-up time and its censoring flag, found with the values in hand. The
     # flag is 0/1, which ai_kind() calls neither numeric (two distinct values)
     # nor categorical (they parse as numbers), so it never reaches `variables`
@@ -237,6 +246,7 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
          n         = nrow(rows),
          facets    = facets,
          recorded  = recorded,
+         constant  = constant,
          survival  = surv,
          demo      = d %in% demo,
          measures_genes = ai_measures_genes(facets$measurement,

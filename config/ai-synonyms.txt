@@ -27,3 +27,34 @@ ppar gamma    | PPARG
 prdm16        | PRDM16
 fgf21         | FGF21
 irisin        | FNDC5
+
+# The spellings HGNC retired in 2020. A researcher types SEPT9, and the
+# matrices now say SEPTIN9; both have to find the gene.
+
+dec1          | DELEC1
+marc1         | MTARC1
+marc2         | MTARC2
+march1        | MARCHF1
+march10       | MARCHF10
+march11       | MARCHF11
+march2        | MARCHF2
+march3        | MARCHF3
+march4        | MARCHF4
+march5        | MARCHF5
+march6        | MARCHF6
+march7        | MARCHF7
+march8        | MARCHF8
+march9        | MARCHF9
+sept1         | SEPTIN1
+sept10        | SEPTIN10
+sept11        | SEPTIN11
+sept12        | SEPTIN12
+sept14        | SEPTIN14
+sept2         | SEPTIN2
+sept3         | SEPTIN3
+sept4         | SEPTIN4
+sept5         | SEPTIN5
+sept6         | SEPTIN6
+sept7         | SEPTIN7
+sept8         | SEPTIN8
+sept9         | SEPTIN9

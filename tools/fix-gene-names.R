@@ -17,16 +17,38 @@ args        <- commandArgs(TRUE)
 dry         <- "--dry" %in% args
 keep_backup <- "--keep-backup" %in% args
 
-fixes <- local({
-  path <- file.path(os_root(), "config", "gene-name-fixes.txt")
-  if (!file.exists(path)) stop("no config/gene-name-fixes.txt", call. = FALSE)
+# Two maps, one pass. gene-name-fixes.txt undoes what a spreadsheet did;
+# gene-symbol-updates.txt brings the old HGNC spellings to the current ones,
+# because the hub carries both and the same gene is otherwise invisible
+# depending on which is typed.
+read_map <- function(file, required = TRUE) {
+  path <- file.path(os_root(), "config", file)
+  if (!file.exists(path)) {
+    if (required) stop("no config/", file, call. = FALSE) else return(character(0))
+  }
   lines <- readLines(path, warn = FALSE)
   lines <- lines[!grepl("^\\s*(#|$)", lines)]
   parts <- strsplit(lines, "\\s*\\|\\s*")
   keep <- lengths(parts) >= 2
   stats::setNames(trimws(vapply(parts[keep], `[`, character(1), 2)),
                   trimws(vapply(parts[keep], `[`, character(1), 1)))
-})
+}
+
+fixes <- c(read_map("gene-name-fixes.txt"),
+           read_map("gene-symbol-updates.txt", required = FALSE))
+
+# A date repaired to MARCH1 and MARCH1 updated to MARCHF1 are two steps; do
+# them in one so no file is written twice.
+repeat {
+  chained <- intersect(unname(fixes), names(fixes))
+  if (!length(chained)) break
+  k <- unname(fixes) %in% chained
+  fixes[k] <- unname(fixes[unname(fixes)[k]])
+}
+if (any(duplicated(names(fixes)))) {
+  stop("the same name is mapped twice: ",
+       paste(names(fixes)[duplicated(names(fixes))], collapse = ", "), call. = FALSE)
+}
 cat(length(fixes), " replacements known\n\n", sep = "")
 
 md <- load_metadata()

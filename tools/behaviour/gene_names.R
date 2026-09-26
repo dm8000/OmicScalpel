@@ -71,9 +71,23 @@ if (is.null(idx)) {
   }
   chk(!length(left), "no dataset still carries a repairable date as a gene name",
       paste(names(left), unlist(left), collapse = "; "))
-  chk(length(ai_datasets_with_gene("MARCH1")) > 0 &&
-      length(ai_datasets_with_gene("SEPT9")) > 0,
-      "and the repaired genes can be found again")
+  # One nomenclature, not two. The hub carried both: El-Sayed Moustafa used
+  # MARCHF/SEPTIN and everyone else MARCH/SEPT, so the same gene was invisible
+  # depending on which spelling was typed.
+  all_syms <- unique(unlist(idx$datasets))
+  stale <- grep("^(MARCH[0-9]|SEPT[0-9]|MARC[12]$|DEC1$)", all_syms, value = TRUE)
+  chk(!length(stale), "no dataset still uses the retired HGNC spellings",
+      paste(utils::head(stale, 5), collapse = ", "))
+  chk(length(ai_datasets_with_gene("MARCHF1")) > 0 &&
+      length(ai_datasets_with_gene("SEPTIN9")) > 0,
+      "and the repaired genes can be found under the current ones")
+
+  # A researcher types SEPT9. They have typed it for twenty years.
+  chk(identical(ai_gene_candidates("is SEPT9 expressed here?")$symbol[1], "SEPTIN9"),
+      "the old spelling still finds the gene",
+      paste(ai_gene_candidates("is SEPT9 expressed here?")$symbol, collapse = ", "))
+  chk(identical(ai_gene_candidates("what about MARCH1?")$symbol[1], "MARCHF1"),
+      "and so does the one that looks like a date")
 }
 
 cat("\n", n, " checks passed\n", sep = "")
