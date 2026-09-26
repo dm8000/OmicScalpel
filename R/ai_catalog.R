@@ -10,16 +10,22 @@
 # Has.*.data flags disagree with what is on disk for six datasets. list_units()
 # is the truthful source for units; the per-sample metadata for the rest.
 
-# Identity and provenance: never an outcome to analyse.
-AI_ID_COLS <- c("SampleID", "TsengID", "dataset", "Author", "Date.sequenced",
-                "Date.of.collection", "Folder.Name.in.TsengLab/Datasets",
-                "Project", "publication", "Data.location.&.ELN",
-                "Fellow.who.generated/uploaded.dataset",
-                "Fellow who generated/uploaded dataset", "Description/observation")
+# Identity and provenance: never an outcome to analyse. Read from
+# config/ai-identity.txt, because a different collection has different columns
+# and should not need R edited to say so.
+ai_id_cols <- function() {
+  path <- file.path(os_root(), "config", "ai-identity.txt")
+  if (!file.exists(path)) return(c("SampleID", "dataset", "Author"))
+  v <- trimws(readLines(path, warn = FALSE))
+  v[nzchar(v) & !startsWith(v, "#")]
+}
 
-# What a dataset *is*, as opposed to what varies inside it.
-AI_FACET_COLS <- c("Species", "Tissue", "Data.type", "Cell.type", "Strain",
-                   "Anatomical_region", "Data_avaiability")
+# What a dataset *is*, as opposed to what varies inside it: whatever the
+# declared facets are built from, so declaring a facet excludes its column
+# from the variables by itself.
+ai_facet_cols <- function() {
+  unique(unlist(lapply(ai_facet_spec(), function(f) f$columns), use.names = FALSE))
+}
 
 # --- reading values ----------------------------------------------------------
 
@@ -164,7 +170,7 @@ ai_catalog <- function(md = NULL, max_levels = 12L) {
   # empty, which the filters already treat as "not recorded".
   summ <- tryCatch(load_datasets_summary(), error = function(e) NULL)
 
-  cols <- setdiff(names(md), c(AI_ID_COLS, AI_FACET_COLS))
+  cols <- setdiff(names(md), c(ai_id_cols(), ai_facet_cols()))
   out <- lapply(sort(unique(md$dataset)), function(d) {
     rows <- md[!is.na(md$dataset) & md$dataset == d, , drop = FALSE]
 

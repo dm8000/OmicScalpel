@@ -325,6 +325,49 @@ chk(all(c("species", "tissue") %in% names(qs)),
 chk(!"setting" %in% names(qs),
     "while a facet no dataset records is not asked about at all")
 
+# --- the framework does not know this lab -------------------------------------
+# OmicScalpel is meant to run on any collection. A dataset name in the code
+# would mean it only runs on this one; a column name of this lab's spreadsheet
+# in the code means the next lab has to edit R.
+# Two modules are exempt, and for a reason worth stating: minting this lab's
+# own sample identifiers is lab-specific by nature -- TSE00042.RNAseq is a
+# local convention and nothing else can invent it. Searching and cataloguing
+# are not, and that is what this checks.
+MINTS_IDS <- c("R/modules/mod_metadata_editor.R", "R/modules/mod_upload_dataset.R")
+files <- setdiff(list.files("R", pattern = "\\.R$", recursive = TRUE, full.names = TRUE),
+                 MINTS_IDS)
+code <- unlist(lapply(files, function(f) grep("^\\s*#", readLines(f, warn = FALSE),
+                                              value = TRUE, invert = TRUE)))
+leaked <- grep("TsengID|TsengLab", code, value = TRUE)
+chk(!length(leaked),
+    "no lab-specific column name is written into the search code",
+    paste(utils::head(trimws(leaked), 2), collapse = " | "))
+chk(length(ai_id_cols()) > 0 && length(ai_facet_cols()) > 0,
+    "identity and facet columns are read from config, not from the code")
+
+# The sentence is a template filled from the data, not a sentence about this
+# collection. Same code, a plant drought experiment.
+PLANTS <- list(
+  ds("Silva 2021", 300, "Ath", "Leaf", "RNAseq", "TPM",
+     list(cat_("Treatment", c("drought", "control")))),
+  ds("Kim 2019", 120, "Ath", "Root", "RNAseq", "TPM",
+     list(num("Biomass", 1, 9)), recorded = "Treatment",
+     constant = list(Treatment = "drought")))
+names(PLANTS) <- vapply(PLANTS, function(x) x$dataset, character(1))
+PIDX <- list(built = Sys.time(),
+             datasets = list("Silva 2021" = "DREB2A", "Kim 2019" = "DREB2A"))
+pp <- ai_decide(utils::modifyList(answers(), list(
+        intent = choice("comparison_groups"), species = choice("any"),
+        tissue = choice("any"), variable = choice("Treatment"),
+        gene = choice("DREB2A"))),
+      PLANTS, data.frame(symbol = "DREB2A", how = "exact", stringsAsFactors = FALSE),
+      index = PIDX)
+chk(isTRUE(pp$ok) && grepl("more than one Treatment", pp$note) &&
+    grepl("DREB2A", pp$note),
+    "the note names whatever the variable and the gene happen to be", pp$note)
+chk(grepl("every one of its 120 samples is drought", pp$note),
+    "and reads the near miss out of that collection, not this one", pp$note)
+
 # --- nothing matches ----------------------------------------------------------
 
 # LEPR is a candidate the question could have meant, and no dataset carries it.

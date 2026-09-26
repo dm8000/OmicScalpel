@@ -231,6 +231,33 @@ so nobody cleared it. Controls with no declared default are left alone --
 `numeric_columns` has no sensible empty value, and the plans that use it always
 set it.
 
+## What is a framework here, and what is this lab
+
+OmicScalpel is meant to run on any collection, so nothing about *this* one may
+live in the code. Two checks in `tools/behaviour/ai_plan.R` hold that line:
+
+- **No dataset name appears in `R/`.** The search knows what the catalog tells
+  it and nothing else.
+- **No column name of this lab's spreadsheet appears in the search code.**
+  `config/ai-identity.txt` says which columns identify a sample,
+  `config/ai-facets.txt` which are facets, and the facet columns are excluded
+  from the variables by being declared, not by being listed twice.
+
+`mod_metadata_editor.R` and `mod_upload_dataset.R` are exempt and the test says
+so: minting `TSE00042.RNAseq` is a local convention and nothing generic can
+invent it.
+
+The sentences the question tab writes are templates filled from the data, not
+text about this collection. The same code on a plant drought experiment:
+
+  Silva 2021 is the only dataset here that has more than one Treatment to
+  compare and measures DREB2A, so any question of this shape lands on it.
+  Kim 2019 records Treatment too, but every one of its 120 samples is drought.
+
+Dataset, variable, gene, sample count and the constant value all come from the
+catalog, and the clauses appear or disappear with what the question asked --
+a question with no gene produces a sentence with no gene in it.
+
 ## Roadmap
 
 **Inline help on the other tabs.** `os_help()` and `os_field()` in

@@ -133,7 +133,9 @@ metaAnalysisServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
     
     observe({
       if (!is.null(metadata())) {
-        exclude_cols <- c("TsengID", "SampleID", "dataset", "Data.type")
+        # From config/ai-identity.txt: which columns identify a sample rather
+        # than measure one is a property of the collection, not of this code.
+        exclude_cols <- unique(c(ai_id_cols(), "Data.type"))
         condition_choices <- setdiff(names(metadata()), exclude_cols)
         # Keep whatever is selected. Passing choices without selected resets
         # the box to the first column, and this observer re-runs on every

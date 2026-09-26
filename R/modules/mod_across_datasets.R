@@ -113,7 +113,7 @@ acrossDatasetsServer <- function(id, ds, meta, go_to = NULL, ai = NULL) {
           length(u) >= 2 && length(u) <= 12 && any(is.na(suppressWarnings(as.numeric(u))))
         }, logical(1))]
       }), character(0))
-      cols <- setdiff(cols, c("SampleID", "dataset", "TsengID", "Author"))
+      cols <- setdiff(cols, ai_id_cols())
       updateSelectInput(session, "split_col", choices = c("No split" = "", sort(cols)),
                         selected = isolate(input$split_col))
     })

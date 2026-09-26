@@ -1,0 +1,26 @@
+# Columns that identify or attribute a sample, and are never something to
+# analyse.
+#
+# This file exists because the list used to be in R/ai_catalog.R, with
+# "TsengID" and "Folder.Name.in.TsengLab/Datasets" written into the code of a
+# framework that is supposed to work on any collection. A different lab has
+# different columns and should not have to edit R to say so.
+#
+# The columns a facet is built from are excluded as well, and those come from
+# config/ai-facets.txt -- no need to repeat them here.
+#
+# One column per line.
+
+SampleID
+TsengID
+dataset
+Author
+Date.sequenced
+Date.of.collection
+Folder.Name.in.TsengLab/Datasets
+Project
+publication
+Data.location.&.ELN
+Fellow.who.generated/uploaded.dataset
+Fellow who generated/uploaded dataset
+Description/observation
