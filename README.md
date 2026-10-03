@@ -73,6 +73,25 @@ against the small fixtures in `data-sample/` instead of the real hub:
 
 Deployment on the HPC: [docs/DEPLOY.md](docs/DEPLOY.md).
 
+## License
+
+Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md).
+
+**Free** for any noncommercial purpose: personal research and study, and any use by
+a university, public research institute, charity, public health body or government
+institution -- whoever funds the work.
+
+**Commercial use needs a separate license.** A company using OmicScalpel for its own
+work, in a product or in a paid service is commercial use. Write to
+demoraesdiogo2017@gmail.com.
+
+The R packages the app runs on keep their own licenses and are not distributed
+here: [THIRD-PARTY.md](THIRD-PARTY.md).
+
+Contributions are welcome, but a pull request can only be merged with a contributor
+agreement that lets its code be offered under both licenses. Ask before starting
+anything large.
+
 ## For maintainers
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — what is shared, how the hub is

@@ -1,6 +1,8 @@
 # R/cutoff_finder.R -- finding a cutpoint in a continuous variable.
 #
-# Distilled from Cutoff Finder (Budczies et al., PLoS ONE 2012;7(12):e51862).
+# Methods from Cutoff Finder (Budczies et al., PLoS ONE 2012;7(12):e51862),
+# implemented independently from the paper: no code from the GPL-3 CutoffFinder
+# R package.
 # Pure functions, no Shiny, so the statistics can be checked without a session.
 #
 # The paper is explicit about what this costs:
